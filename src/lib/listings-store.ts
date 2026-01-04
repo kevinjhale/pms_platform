@@ -52,5 +52,5 @@ export async function updateListing(id: string, updates: Partial<Listing>) {
 }
 
 export async function deleteListing(id: string) {
-    listings = listings.filter(l => l.id === id);
+    listings = listings.filter(l => l.id !== id);
 }
