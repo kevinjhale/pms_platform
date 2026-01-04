@@ -154,21 +154,21 @@ Landlord (90%)      PM Company (10%)
 ### Phase 1: Foundation (MVP)
 *Target: 8-10 weeks*
 
-- [ ] **Database layer** - Drizzle with SQLite/Postgres support
-- [ ] **Multi-org tenancy** - Organization, User, Role models
-- [ ] **Property management** - CRUD for properties, units
-- [ ] **Listing portal** - Public listing pages, renter browsing
-- [ ] **Application workflow** - Submit, review, approve/reject
+- [x] **Database layer** - Drizzle with SQLite/Postgres support
+- [x] **Multi-org tenancy** - Organization, User, Role models
+- [x] **Property management** - CRUD for properties, units
+- [x] **Listing portal** - Public listing pages, renter browsing
+- [x] **Application workflow** - Submit, review, approve/reject
 - [ ] **Basic payments** - Stripe Connect integration, no splitting yet
-- [ ] **Docker deployment** - Single container, compose file
+- [x] **Docker deployment** - Single container, compose file
 - [ ] **Admin UI** - Plugin configuration interface
 
 ### Phase 2: Core PMS Features
 *Target: 6-8 weeks after Phase 1*
 
 - [ ] **Payment splitting** - PM/Landlord split configuration and distribution
-- [ ] **Lease management** - Lease terms, renewals, move-in/move-out
-- [ ] **Rent tracking** - Due dates, late fees, payment history
+- [x] **Lease management** - Lease terms, renewals, move-in/move-out
+- [x] **Rent tracking** - Due dates, late fees, payment history
 - [ ] **Document storage** - Leases, IDs, pay stubs (S3/R2 plugin)
 - [ ] **Email notifications** - Transactional emails (Resend/SendGrid plugin)
 - [ ] **In-app messaging** - Threaded conversations with email fallback
@@ -177,11 +177,11 @@ Landlord (90%)      PM Company (10%)
 *Target: 8-12 weeks after Phase 2*
 
 - [ ] **Background screening** - TransUnion/Experian plugin
-- [ ] **Maintenance requests** - Tenant submissions, vendor assignment
+- [x] **Maintenance requests** - Tenant submissions, vendor assignment
 - [ ] **Maintenance scheduling** - Calendar, recurring tasks
 - [ ] **Listing syndication** - Zillow, Apartments.com sync
 - [ ] **Maps integration** - Property location display (Mapbox/Google)
-- [ ] **Reporting** - Income, expenses, vacancy rates
+- [x] **Reporting** - Income, expenses, vacancy rates
 
 ### Phase 4: Polish & Scale
 *Ongoing*
@@ -189,7 +189,7 @@ Landlord (90%)      PM Company (10%)
 - [ ] **Mobile app** - React Native or PWA
 - [ ] **API** - Public REST API for integrations
 - [ ] **Webhooks** - Event notifications for external systems
-- [ ] **Audit logging** - Compliance trail for all actions
+- [x] **Audit logging** - Compliance trail for all actions
 - [ ] **Fair Housing compliance** - Screening criteria guardrails
 - [ ] **FCRA compliance** - Adverse action notices, dispute handling
 

@@ -1,45 +1,170 @@
-import Link from 'next/link';
+import Link from "next/link";
+import { auth } from "@/lib/auth";
+import { getLeasesByTenant, getPaymentsByLease } from "@/services/leases";
+import { getApplicationsByApplicant } from "@/services/applications";
+import { centsToDollars } from "@/lib/utils";
 
-export default function RenterDashboard() {
-    return (
-        <main className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem' }}>
-            <h1 style={{ marginBottom: '2rem' }}>Renter Dashboard</h1>
+export default async function RenterDashboard() {
+  const session = await auth();
+  const userId = session?.user?.id;
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+  let activeLease = null;
+  let nextPayment = null;
+  let applications: Awaited<ReturnType<typeof getApplicationsByApplicant>> = [];
 
-                {/* Search Listings */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        🔍 Find Your Home
-                    </h3>
-                    <p style={{ color: 'var(--secondary)', marginBottom: '1.5rem' }}>
-                        Browse thousands of verified listings with immersive 3D tours.
-                    </p>
-                    <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem' }}>
-                        <input placeholder="Search by city, zip..." style={{ flex: 1, padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }} />
-                    </div>
-                    <Link href="/renter/browse" className="btn btn-primary" style={{ width: '100%', textAlign: 'center', textDecoration: 'none' }}>Browse Listings</Link>
-                </div>
+  if (userId) {
+    const leases = await getLeasesByTenant(userId);
+    activeLease = leases.find((l) => l.status === "active") || null;
 
-                {/* Application Portal */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        📝 Application Portal
-                    </h3>
-                    <p style={{ color: 'var(--secondary)', marginBottom: '1.5rem' }}>
-                        Manage your rental applications and documents in one place.
-                    </p>
-                    <div style={{ padding: '1rem', backgroundColor: 'var(--surface)', borderRadius: 'var(--radius)', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
-                        <div style={{ marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.875rem' }}>Documents Status</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.75rem' }}>
-                            <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '4px', border: '1px solid #bbf7d0' }}>ID Verified ✅</span>
-                            <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '4px', border: '1px solid #bbf7d0' }}>Income Verified ✅</span>
-                            <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fef2f2', color: '#991b1b', borderRadius: '4px', border: '1px solid #fecaca' }}>W2 Needed ⚠️</span>
-                        </div>
-                    </div>
-                    <button className="btn" style={{ width: '100%', border: '1px solid var(--border)' }}>View My Applications</button>
-                </div>
+    if (activeLease) {
+      const payments = await getPaymentsByLease(activeLease.id);
+      nextPayment = payments.find(
+        (p) => p.status === "upcoming" || p.status === "due"
+      );
+    }
+
+    applications = await getApplicationsByApplicant(userId);
+  }
+
+  const pendingApps = applications.filter(
+    (a) => a.status === "submitted" || a.status === "under_review"
+  );
+
+  return (
+    <main className="container" style={{ paddingTop: "4rem", paddingBottom: "4rem" }}>
+      <h1 style={{ marginBottom: "2rem" }}>Renter Dashboard</h1>
+
+      {/* Active Lease Banner */}
+      {activeLease && (
+        <div
+          className="card"
+          style={{
+            marginBottom: "2rem",
+            padding: "1.5rem",
+            backgroundColor: "var(--surface)",
+            border: "2px solid var(--primary)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "0.25rem" }}>
+                Current Lease
+              </h2>
+              <div style={{ fontWeight: "500" }}>
+                {activeLease.propertyName}
+                {activeLease.unitNumber && ` - Unit ${activeLease.unitNumber}`}
+              </div>
+              <div style={{ color: "var(--secondary)", fontSize: "0.875rem" }}>
+                {activeLease.propertyAddress}
+              </div>
+              <div style={{ color: "var(--secondary)", fontSize: "0.875rem", marginTop: "0.5rem" }}>
+                Lease ends: {new Date(activeLease.endDate).toLocaleDateString()}
+              </div>
             </div>
-        </main>
-    );
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
+                ${centsToDollars(activeLease.monthlyRent).toLocaleString()}
+              </div>
+              <div style={{ color: "var(--secondary)", fontSize: "0.875rem" }}>per month</div>
+              {nextPayment && (
+                <div
+                  style={{
+                    marginTop: "0.75rem",
+                    padding: "0.5rem 0.75rem",
+                    backgroundColor:
+                      nextPayment.status === "due" ? "#fff7ed" : "#f0fdf4",
+                    color: nextPayment.status === "due" ? "#9a3412" : "#15803d",
+                    borderRadius: "var(--radius)",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  {nextPayment.status === "due" ? "Due now" : "Next payment"}: $
+                  {centsToDollars(nextPayment.amountDue).toLocaleString()}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: "2rem",
+        }}
+      >
+        {/* Search Listings */}
+        <div className="card">
+          <h3
+            style={{
+              fontSize: "1.5rem",
+              marginBottom: "1rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+          >
+            Find Your Home
+          </h3>
+          <p style={{ color: "var(--secondary)", marginBottom: "1.5rem" }}>
+            Browse available listings and find your next home.
+          </p>
+          <Link
+            href="/renter/browse"
+            className="btn btn-primary"
+            style={{ width: "100%", textAlign: "center", textDecoration: "none" }}
+          >
+            Browse Listings
+          </Link>
+        </div>
+
+        {/* Applications */}
+        <div className="card">
+          <h3
+            style={{
+              fontSize: "1.5rem",
+              marginBottom: "1rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+          >
+            My Applications
+          </h3>
+          <p style={{ color: "var(--secondary)", marginBottom: "1rem" }}>
+            Track your rental applications.
+          </p>
+          {pendingApps.length > 0 ? (
+            <div style={{ marginBottom: "1rem" }}>
+              {pendingApps.slice(0, 2).map((app) => (
+                <div
+                  key={app.id}
+                  style={{
+                    padding: "0.75rem",
+                    backgroundColor: "var(--surface)",
+                    borderRadius: "var(--radius)",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  <div style={{ fontWeight: "500" }}>{app.unitTitle}</div>
+                  <div style={{ color: "var(--secondary)", fontSize: "0.75rem" }}>
+                    {app.status === "submitted" ? "Awaiting review" : "Under review"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: "var(--secondary)", fontSize: "0.875rem", marginBottom: "1rem" }}>
+              No pending applications.
+            </p>
+          )}
+          <div style={{ color: "var(--secondary)", fontSize: "0.875rem" }}>
+            {applications.length} total application{applications.length !== 1 ? "s" : ""}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }

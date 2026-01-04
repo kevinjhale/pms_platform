@@ -166,6 +166,83 @@ export default async function LandlordDashboard() {
             Request Screening
           </Link>
         </div>
+
+        {/* Leases */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Leases
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            Manage lease agreements and rent collection.
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}>• Active lease tracking</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Rent due dates & reminders</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Payment history</li>
+          </ul>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Link href="/landlord/leases/new" className="btn btn-primary" style={{ flex: 1 }}>
+              New Lease
+            </Link>
+            <Link href="/landlord/leases" className="btn" style={{ flex: 1, border: '1px solid var(--border-color)' }}>
+              View All
+            </Link>
+          </div>
+        </div>
+
+        {/* Maintenance */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Maintenance
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            Track and manage maintenance requests from tenants.
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}>• Request prioritization</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Status tracking & comments</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Cost tracking</li>
+          </ul>
+          <Link href="/landlord/maintenance" className="btn" style={{ width: '100%', border: '1px solid var(--border-color)' }}>
+            View Requests
+          </Link>
+        </div>
+
+        {/* Activity Log */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Activity Log
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            Audit trail for compliance and accountability.
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}>• Track all user actions</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Filter by entity type</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Compliance ready</li>
+          </ul>
+          <Link href="/landlord/activity" className="btn" style={{ width: '100%', border: '1px solid var(--border-color)' }}>
+            View Activity
+          </Link>
+        </div>
+
+        {/* Reports */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Reports & Analytics
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            Key metrics and insights for your portfolio.
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}>• Occupancy rates</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Revenue tracking</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Lease expirations</li>
+          </ul>
+          <Link href="/landlord/reports" className="btn btn-primary" style={{ width: '100%' }}>
+            View Reports
+          </Link>
+        </div>
       </div>
     </main>
   );
