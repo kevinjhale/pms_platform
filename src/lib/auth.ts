@@ -1,7 +1,5 @@
 import NextAuth, { type DefaultSession } from "next-auth";
-import Google from "next-auth/providers/google";
-import GitHub from "next-auth/providers/github";
-import Credentials from "next-auth/providers/credentials";
+import { authConfig } from "./auth.config";
 import { getDb, users } from "@/db";
 import { eq } from "drizzle-orm";
 import { generateId, now } from "./utils";
@@ -19,68 +17,13 @@ declare module "next-auth" {
   }
 }
 
-// Demo users for development/testing
-const DEMO_USERS: Record<string, { id: string; name: string; email: string; role: string }> = {
-  "renter@demo.com": { id: "demo-renter", name: "Demo Renter", email: "renter@demo.com", role: "renter" },
-  "landlord@demo.com": { id: "demo-landlord", name: "Demo Landlord", email: "landlord@demo.com", role: "landlord" },
-  "manager@demo.com": { id: "demo-manager", name: "Demo Manager", email: "manager@demo.com", role: "manager" },
-};
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  session: {
-    strategy: "jwt",
-  },
-  providers: [
-    Google,
-    GitHub,
-    Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      authorize: async (credentials) => {
-        const email = (credentials.email as string)?.toLowerCase();
-        if (!email) return null;
-
-        // Check demo users first
-        const demoUser = DEMO_USERS[email];
-        if (demoUser) {
-          await ensureUserExists(demoUser);
-          return demoUser;
-        }
-
-        // For real users, check database
-        const db = getDb();
-        const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-        const user = result[0];
-
-        if (user) {
-          // TODO: In production, verify password hash here
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-          };
-        }
-
-        // Create new user for credentials login (development only)
-        const newUser = await createCredentialsUser(email);
-        return {
-          id: newUser.id,
-          name: newUser.name,
-          email: newUser.email,
-        };
-      },
-    }),
-  ],
-  pages: {
-    signIn: "/login",
-  },
+  ...authConfig,
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account }) {
-      // For OAuth providers, ensure user exists in our database
-      if (account?.provider !== "credentials" && user.email) {
+      // Ensure user exists in database (server-side only)
+      if (user.email) {
         await ensureUserExists({
           id: user.id || generateId(),
           email: user.email,
@@ -89,20 +32,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
       }
       return true;
-    },
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role || "renter";
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-      }
-      return session;
     },
   },
 });

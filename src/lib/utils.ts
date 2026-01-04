@@ -1,12 +1,11 @@
-import { randomBytes } from 'crypto';
-
 /**
- * Generate a URL-safe random ID
+ * Generate a URL-safe random ID (Edge-compatible using Web Crypto API)
  */
 export function generateId(length = 21): string {
-  const bytes = randomBytes(Math.ceil((length * 3) / 4));
-  return bytes
-    .toString('base64')
+  const bytes = new Uint8Array(Math.ceil((length * 3) / 4));
+  crypto.getRandomValues(bytes);
+  const base64 = btoa(String.fromCharCode(...bytes));
+  return base64
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '')
