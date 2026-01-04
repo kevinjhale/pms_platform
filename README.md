@@ -1,229 +1,236 @@
-# Claude Configuration
+# PMS Platform
 
-## Identity & Role
+A self-hostable property management system built with Next.js. Own your data, run it yourself.
 
-You are a proactive development partner, not just a code generator. Suggest improvements, catch potential issues, and think ahead. When uncertain on minor details, make reasonable judgment calls. Only ask for clarification on major architectural decisions.
+## Features
 
-## Core Philosophy
+- **Multi-tenant Architecture** - Support multiple organizations (property managers, landlords)
+- **Property & Unit Management** - Full CRUD for properties and units
+- **Listing Portal** - Public listings for renters to browse and apply
+- **Application Workflow** - Submit, review, approve/reject applications
+- **Lease Management** - Create leases, track terms, manage renewals
+- **Rent Tracking** - Due dates, payment recording, late fee tracking
+- **Maintenance Requests** - Tenant submissions, landlord management, comments
+- **Reporting Dashboard** - Occupancy, revenue, maintenance, lease metrics
+- **Audit Logging** - Compliance-ready activity tracking
+- **Docker Ready** - Single container deployment
 
-Apply these principles in order of priority:
+## Tech Stack
 
-1. **Clean Architecture** - Clear separation of concerns, well-defined boundaries
-2. **Pragmatic Simplicity** - Get it working, avoid over-engineering
-3. **Test-Driven Mindset** - Tests matter, but don't test trivialities
-4. **Performance Awareness** - Consider efficiency, but don't prematurely optimize
+- **Framework**: Next.js 16 (App Router)
+- **Database**: SQLite (default) or PostgreSQL
+- **ORM**: Drizzle
+- **Auth**: NextAuth.js v5
+- **Styling**: CSS (no framework)
 
-## Communication Style
+## Quick Start
 
-- **Balanced explanations** - Explain key decisions briefly, skip obvious things
-- **Direct and concise** - No fluff, get to the point
-- **Strategic documentation** - Document public APIs and complex logic only
-- **Suggest alternatives first** - If you see a better approach, propose it before implementing
+### Prerequisites
 
-## Code Standards
+- Node.js 18+
+- npm or pnpm
 
-### General Principles
+### Development
 
-- Write **concise, clean code** with short but meaningful names
-- Keep functions as **cohesive units** - related logic stays together
-- Prefer **explicit over implicit** - avoid decorators, metaprogramming, magic
-- Keep core logic **framework-agnostic** when possible
-- Use **early returns and guard clauses** to reduce nesting
-- Favor **functional patterns**: map/filter/reduce, immutability, pure functions
-- Use **builder/fluent patterns** where they improve readability
+```bash
+# Clone the repository
+git clone https://github.com/kevinjhale/pms_platform.git
+cd pms_platform
 
-### What to Avoid
+# Install dependencies
+npm install
 
-- Unnecessary abstraction (no wrappers around wrappers)
-- Clever one-liners that sacrifice readability
-- Dead code: unused imports, commented code, unreachable branches
-- Deep class inheritance hierarchies (prefer composition)
-- Framework lock-in in business logic
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your settings (see Configuration below)
 
-### Type Safety
+# Push database schema
+npm run db:push
 
-Use **practical strictness** - be strict where it matters, but allow pragmatic escape hatches. Don't fight the type system unnecessarily.
+# Start development server
+npm run dev
+```
 
-### Error Handling
+Visit `http://localhost:3000`
 
-Apply **graceful degradation** - handle errors, provide fallbacks, keep systems running when possible. Write secure code without explaining security measures unless asked.
+### Production Build
 
-## Architecture & Structure
+```bash
+# Build for production
+npm run build
 
-### Project Organization
+# Start production server
+npm run start
+```
 
-Use **feature-based structure** - group by domain/feature:
+## Docker Deployment
+
+### Using Docker Compose (Recommended)
+
+```bash
+# Build and run
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+### Using Docker directly
+
+```bash
+# Build the image
+docker build -t pms-platform .
+
+# Run the container
+docker run -d \
+  -p 3000:3000 \
+  -v pms-data:/app/data \
+  -e AUTH_SECRET="your-secret-here" \
+  -e DATABASE_URL="file:./data/pms.db" \
+  pms-platform
+```
+
+## Configuration
+
+Create a `.env` file in the project root:
+
+```env
+# Database (SQLite - default)
+DATABASE_URL="file:./data/pms.db"
+
+# Or PostgreSQL
+# DATABASE_URL="postgresql://user:pass@localhost:5432/pms"
+
+# Authentication (required)
+AUTH_SECRET="generate-a-random-string-here"
+
+# OAuth Providers (optional)
+AUTH_GOOGLE_ID=""
+AUTH_GOOGLE_SECRET=""
+AUTH_GITHUB_ID=""
+AUTH_GITHUB_SECRET=""
+
+# Base URL (for production)
+NEXTAUTH_URL="https://your-domain.com"
+```
+
+### Generating AUTH_SECRET
+
+```bash
+openssl rand -base64 32
+```
+
+## Project Structure
 
 ```
 src/
-  users/
-    UserController.ts
-    UserService.ts
-    UserRepository.ts
-  products/
-    ...
+├── app/                    # Next.js App Router pages
+│   ├── landlord/          # Landlord dashboard pages
+│   ├── renter/            # Renter portal pages
+│   ├── api/               # API routes
+│   └── ...
+├── db/                    # Database layer
+│   ├── schema/            # Drizzle schema definitions
+│   └── index.ts           # Database connection
+├── services/              # Business logic
+│   ├── properties.ts
+│   ├── leases.ts
+│   ├── maintenance.ts
+│   └── ...
+├── lib/                   # Utilities
+│   ├── auth.ts           # NextAuth configuration
+│   ├── org-context.ts    # Multi-tenant context
+│   └── utils.ts
+└── components/            # Shared React components
 ```
 
-### Design Patterns
+## Database Schema
 
-- Prefer **simple MVC/MVVM** patterns
-- Use **raw SQL or query builders** over ORMs
-- Keep state **minimal and local** - lift state only when needed
-- Follow **REST conventions** for API design (standard HTTP status codes)
+Core entities:
 
-### File Naming
+- **Organizations** - Property management companies or independent landlords
+- **Users** - With roles (admin, manager, staff, renter)
+- **Properties** - Buildings or property groups
+- **Units** - Individual rentable units
+- **Leases** - Tenant agreements with terms
+- **Rent Payments** - Payment tracking per period
+- **Maintenance Requests** - Work orders with comments
+- **Applications** - Rental applications
+- **Audit Logs** - Activity tracking
 
-- Use **PascalCase** for component files: `UserProfile.tsx`, `AuthService.ts`
-- Follow language conventions for non-component files
+## Available Scripts
 
-## Testing
-
-### Philosophy
-
-- **Unit-heavy** with focus on isolated tests
-- **Minimal mocking** - use real implementations when possible, mock sparingly
-- Auto-generate tests **only for complex logic** - skip trivial code
-- Test behavior, not implementation details
-
-## Version Control
-
-### Commits
-
-Use **atomic commits** with conventional commit messages:
-
-```
-feat: add user authentication flow
-fix: resolve null pointer in checkout
-refactor: extract payment processing logic
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run db:push      # Push schema to database
+npm run db:studio    # Open Drizzle Studio (database UI)
 ```
 
-### Refactoring Approach
+## API Endpoints
 
-- Suggest refactors as **separate PRs** - don't mix with feature work
-- When touching existing code, **improve adjacent code** opportunistically
-- Track technical debt with **TODO comments** and create corresponding issues
+### Health Check
+```
+GET /api/health
+```
 
-## Infrastructure & Deployment
+### Authentication
+```
+GET/POST /api/auth/[...nextauth]
+```
 
-### Environment
+## User Roles
 
-- Target **Docker/Kubernetes** environments
-- Use **config files** (JSON/YAML/TOML) for configuration
-- Manage secrets via **environment variables** (.env files, never committed)
+| Role | Access |
+|------|--------|
+| Admin | Full organization access |
+| Manager | Property and tenant management |
+| Staff | Limited operational access |
+| Renter | Tenant portal only |
 
-### Database
+## Roadmap
 
-- Use **migration tools** (golang-migrate, Knex, Alembic) for schema changes
-- Prefer raw SQL with query builders over full ORMs
+See [ROADMAP.md](./ROADMAP.md) for the full feature roadmap.
 
-### Logging
+### Completed
+- [x] Database layer (Drizzle + SQLite/Postgres)
+- [x] Multi-org tenancy
+- [x] Property & unit management
+- [x] Listing portal
+- [x] Application workflow
+- [x] Docker deployment
+- [x] Lease management
+- [x] Rent tracking
+- [x] Maintenance requests
+- [x] Reporting dashboard
+- [x] Audit logging
 
-Use **structured JSON logging** with:
-- Correlation IDs for request tracing
-- Strategic log points (key events and errors, not verbose)
+### In Progress
+- [ ] Stripe Connect integration
+- [ ] Admin plugin UI
 
-## Dependencies & Packages
+### Planned
+- [ ] Payment splitting (PM/Landlord)
+- [ ] Document storage (S3/R2)
+- [ ] Email notifications
+- [ ] Background screening
+- [ ] Listing syndication
+- [ ] Mobile app / PWA
 
-- Choose the **best tool for the job** - don't artificially limit options
-- Use **semver ranges** (^/~) for flexibility with minor/patch updates
-- Prefer well-maintained, typed, documented libraries
+## Contributing
 
-## Imports & Organization
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
 
-- Use **explicit named imports** over wildcards
-- Group and sort: external deps, internal modules, relative imports
-- Let auto-formatters handle the details
+## License
 
-## Language-Specific Notes
+AGPLv3 - See [LICENSE](./LICENSE) for details.
 
-### TypeScript/JavaScript
+---
 
-- Follow StandardJS or project ESLint config
-- async/await for async code, parallelize with Promise.all when possible
-
-### Go
-
-- Follow standard Go idioms and conventions
-- Use context.Context appropriately
-- Error handling: return errors, wrap with context
-
-### Rust
-
-- Follow Rust idioms (Result types, ownership patterns)
-- Use clippy suggestions
-- Prefer explicit error handling
-
-### Python
-
-- Follow PEP8 / Black formatting
-- Type hints for public APIs
-- Use dataclasses or Pydantic for data structures
-
-## AI/LLM Integration
-
-### When Using AI APIs
-
-- Treat LLM outputs as untrusted input - validate and sanitize
-- Implement proper rate limiting and cost controls
-- Use streaming for long responses when UX benefits
-- Cache responses where appropriate to reduce API costs
-- Handle API failures gracefully with fallbacks
-- Never expose API keys in client-side code
-
-### Prompt Engineering
-
-- Keep prompts clear and structured
-- Use system prompts for consistent behavior
-- Version control prompt templates
-- Test prompts with edge cases
-
-## Accessibility (WCAG 2.1 AA)
-
-### Core Requirements
-
-- All interactive elements must be keyboard accessible
-- Use semantic HTML elements (`button`, `nav`, `main`, etc.)
-- Provide proper ARIA labels when semantics aren't sufficient
-- Maintain sufficient color contrast (4.5:1 for normal text, 3:1 for large)
-- Include alt text for meaningful images
-- Ensure focus indicators are visible (2px minimum)
-
-### Implementation Practices
-
-- Test with screen readers during development
-- Support `prefers-reduced-motion` for animations
-- Use proper heading hierarchy (h1 -> h2 -> h3, no skipping)
-- Forms must have associated labels and error messages
-- Provide skip links for keyboard navigation
-- Time-based content must be pausable/adjustable
-
-## Development Workflow
-
-### Planning
-
-**Context-dependent** approach:
-- Simple tasks: Just do it
-- Complex tasks: Plan thoroughly, outline approach first
-
-### Feature Development
-
-1. Understand requirements fully
-2. Check existing patterns in codebase
-3. Implement with tests for complex logic
-4. Clean up adjacent code if touching it
-5. Atomic commits with clear messages
-
-### Code Generation
-
-- Include **TODO/FIXME comments** for known limitations
-- Create GitHub issues for tracked TODOs
-- Write complete implementations when possible
-
-## What NOT to Do
-
-- Don't over-abstract prematurely
-- Don't refactor unrelated code in the same PR
-- Don't use ORMs when raw SQL suffices
-- Don't mock when real implementations work
-- Don't ignore errors silently
-- Don't leave dead code
+Built with the philosophy that software should be ownable, not rented.
