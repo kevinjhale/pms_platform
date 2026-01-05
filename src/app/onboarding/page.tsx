@@ -82,12 +82,9 @@ export default async function OnboardingPage() {
             borderRadius: '8px',
             marginBottom: '1.5rem',
           }}>
-            <h3 style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-              What type of user are you?
-            </h3>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               You'll be set up as the owner of this organization. You can invite
-              landlords, property managers, or staff members later.
+              team members and manage properties after setup.
             </p>
           </div>
 
