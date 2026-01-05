@@ -42,11 +42,19 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
   return result[0];
 }
 
-export async function updateUser(id: string, data: Partial<Pick<User, 'name' | 'image' | 'emailVerified'>>) {
+export async function updateUser(id: string, data: Partial<Pick<User, 'name' | 'image' | 'emailVerified' | 'role'>>) {
   const db = getDb();
   await db
     .update(users)
     .set({ ...data, updatedAt: now() })
+    .where(eq(users.id, id));
+}
+
+export async function updateUserRole(id: string, role: 'renter' | 'landlord' | 'manager') {
+  const db = getDb();
+  await db
+    .update(users)
+    .set({ role, updatedAt: now() })
     .where(eq(users.id, id));
 }
 

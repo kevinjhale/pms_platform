@@ -1,16 +1,24 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getOrgContext } from "@/lib/org-context";
+import { getUserById } from "@/services/users";
 
 export default async function DashboardPage() {
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect("/login");
   }
 
-  // Role-based routing
-  const role = session.user.role;
+  // Get user's role from database (more reliable than session for new users)
+  const user = await getUserById(session.user.id);
+  const role = user?.role || session.user.role;
+
+  // If user hasn't selected a role yet, redirect to role selection
+  // (Demo users have hardcoded roles in auth config, so they skip this)
+  if (!role) {
+    redirect("/select-role");
+  }
 
   // Renters don't need organizations - direct them to renter dashboard
   if (role === 'renter') {
