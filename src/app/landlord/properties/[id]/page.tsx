@@ -4,6 +4,7 @@ import { getPropertyById, getUnitsByProperty } from '@/services/properties';
 import { createUnitAction, deletePropertyAction } from '@/app/actions/properties';
 import { formatCurrency, centsToDollars } from '@/lib/utils';
 import Link from 'next/link';
+import { DeletePropertyButton } from '@/components/DeletePropertyButton';
 
 const STATUS_COLORS = {
   available: { bg: '#dcfce7', text: '#166534' },
@@ -91,27 +92,7 @@ export default async function PropertyDetailPage({
           >
             Edit Property
           </Link>
-          <form action={deletePropertyWithId}>
-            <button
-              type="submit"
-              style={{
-                padding: '0.625rem 1.25rem',
-                backgroundColor: '#fef2f2',
-                color: '#dc2626',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-              }}
-              onClick={(e) => {
-                if (!confirm('Are you sure you want to delete this property? This will also delete all units.')) {
-                  e.preventDefault();
-                }
-              }}
-            >
-              Delete
-            </button>
-          </form>
+          <DeletePropertyButton onDelete={deletePropertyWithId} />
         </div>
       </div>
 
