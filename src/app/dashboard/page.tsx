@@ -9,20 +9,23 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Check organization membership
+  // Role-based routing
+  const role = session.user.role;
+
+  // Renters don't need organizations - direct them to renter dashboard
+  if (role === 'renter') {
+    redirect("/renter");
+  }
+
+  // Landlords and managers need organizations
   const { organization, organizations } = await getOrgContext();
 
-  // If no organizations, redirect to onboarding
+  // If no organizations, redirect to onboarding (for landlords/managers only)
   if (organizations.length === 0) {
     redirect("/onboarding");
   }
 
-  // Role-based routing
-  const role = session.user.role;
-
-  if (role === 'renter') {
-    redirect("/renter");
-  } else if (role === 'landlord' || role === 'manager') {
+  if (role === 'landlord' || role === 'manager') {
     redirect("/landlord");
   } else {
     // Default fallback - show dashboard with org info
