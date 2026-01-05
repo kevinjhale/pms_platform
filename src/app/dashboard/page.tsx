@@ -25,6 +25,11 @@ export default async function DashboardPage() {
     redirect("/renter");
   }
 
+  // Maintenance workers go to maintenance dashboard
+  if (role === 'maintenance') {
+    redirect("/maintenance");
+  }
+
   // Landlords and managers need organizations
   const { organization, organizations } = await getOrgContext();
 

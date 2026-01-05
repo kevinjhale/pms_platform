@@ -29,6 +29,13 @@ export const proxy = auth((req) => {
       return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
+  if (nextUrl.pathname.startsWith("/maintenance")) {
+    if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
+    // Maintenance workers and managers/landlords can access maintenance routes
+    if (role !== "maintenance" && role !== "manager" && role !== "landlord")
+      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+  }
+
   return NextResponse.next();
 });
 

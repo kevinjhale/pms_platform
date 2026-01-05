@@ -169,6 +169,74 @@ export async function getMaintenanceRequestsByTenant(
   }));
 }
 
+export async function getMaintenanceRequestsByWorker(
+  workerId: string,
+  status?: string
+): Promise<MaintenanceRequestWithDetails[]> {
+  const db = getDb();
+
+  const results = await db
+    .select({
+      request: maintenanceRequests,
+      unitNumber: units.unitNumber,
+      propertyName: properties.name,
+      propertyAddress: properties.address,
+      requestedByName: users.name,
+    })
+    .from(maintenanceRequests)
+    .innerJoin(units, eq(maintenanceRequests.unitId, units.id))
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .innerJoin(users, eq(maintenanceRequests.requestedBy, users.id))
+    .where(eq(maintenanceRequests.assignedTo, workerId))
+    .orderBy(desc(maintenanceRequests.createdAt));
+
+  const filtered = status
+    ? results.filter((r) => r.request.status === status)
+    : results;
+
+  return filtered.map((row) => ({
+    ...row.request,
+    unitNumber: row.unitNumber,
+    propertyName: row.propertyName,
+    propertyAddress: row.propertyAddress,
+    requestedByName: row.requestedByName || "Unknown",
+    assignedToName: null,
+  }));
+}
+
+export async function getAllMaintenanceRequests(
+  status?: string
+): Promise<MaintenanceRequestWithDetails[]> {
+  const db = getDb();
+
+  const results = await db
+    .select({
+      request: maintenanceRequests,
+      unitNumber: units.unitNumber,
+      propertyName: properties.name,
+      propertyAddress: properties.address,
+      requestedByName: users.name,
+    })
+    .from(maintenanceRequests)
+    .innerJoin(units, eq(maintenanceRequests.unitId, units.id))
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .innerJoin(users, eq(maintenanceRequests.requestedBy, users.id))
+    .orderBy(desc(maintenanceRequests.createdAt));
+
+  const filtered = status
+    ? results.filter((r) => r.request.status === status)
+    : results;
+
+  return filtered.map((row) => ({
+    ...row.request,
+    unitNumber: row.unitNumber,
+    propertyName: row.propertyName,
+    propertyAddress: row.propertyAddress,
+    requestedByName: row.requestedByName || "Unknown",
+    assignedToName: null,
+  }));
+}
+
 export async function updateMaintenanceRequest(
   id: string,
   data: Partial<NewMaintenanceRequest>
