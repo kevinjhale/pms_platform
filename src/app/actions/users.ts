@@ -11,8 +11,8 @@ export async function selectRoleAction(formData: FormData) {
     throw new Error('Not authenticated');
   }
 
-  const role = formData.get('role') as 'renter' | 'landlord' | 'manager';
-  if (!role || !['renter', 'landlord', 'manager'].includes(role)) {
+  const role = formData.get('role') as 'renter' | 'landlord' | 'manager' | 'maintenance';
+  if (!role || !['renter', 'landlord', 'manager', 'maintenance'].includes(role)) {
     throw new Error('Invalid role selection');
   }
 

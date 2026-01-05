@@ -50,7 +50,7 @@ export async function updateUser(id: string, data: Partial<Pick<User, 'name' | '
     .where(eq(users.id, id));
 }
 
-export async function updateUserRole(id: string, role: 'renter' | 'landlord' | 'manager') {
+export async function updateUserRole(id: string, role: 'renter' | 'landlord' | 'manager' | 'maintenance') {
   const db = getDb();
   await db
     .update(users)

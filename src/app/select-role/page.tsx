@@ -110,6 +110,29 @@ export default async function SelectRolePage() {
                 </div>
               </div>
             </label>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '1rem',
+              padding: '1rem',
+              border: '2px solid var(--border-color)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}>
+              <input
+                type="radio"
+                name="role"
+                value="maintenance"
+                style={{ marginTop: '0.25rem' }}
+              />
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Maintenance Worker</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  I handle maintenance and repair work.
+                </div>
+              </div>
+            </label>
           </div>
 
           <button

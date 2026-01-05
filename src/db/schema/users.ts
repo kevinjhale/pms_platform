@@ -8,8 +8,8 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash'),
   image: text('image'),
   emailVerified: integer('email_verified', { mode: 'timestamp' }),
-  // Platform role: renter, landlord, or manager (null = not yet selected)
-  role: text('role', { enum: ['renter', 'landlord', 'manager'] }),
+  // Platform role: renter, landlord, manager, or maintenance (null = not yet selected)
+  role: text('role', { enum: ['renter', 'landlord', 'manager', 'maintenance'] }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
