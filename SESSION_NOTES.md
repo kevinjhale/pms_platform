@@ -8,122 +8,121 @@ Property Management System (PMS) - a multi-tenant platform for landlords, proper
 
 ## Current State
 
-The platform now has complete sidebar navigation for all user types (landlord, renter, maintenance worker), mobile responsiveness, email notification infrastructure, file upload capability, Stripe payment integration, and a testing framework.
+The platform now has:
+- Complete sidebar navigation for all user types (landlord, renter, maintenance worker)
+- Mobile responsiveness with FAB hamburger menu
+- Email notification infrastructure with event triggers
+- File upload capability for maintenance tickets
+- Stripe payment integration
+- Background job scheduler for automated notifications
+- Comprehensive testing framework (25 tests)
+- Full documentation for setup and configuration
 
 ---
 
 ## What Was Done This Session
 
-### 1. Renter Dashboard Sidebar Navigation
+### 1. Email Notifications Wired to Events
+- **Organization invites**: Email sent when invite is created (`src/services/invites.ts`)
+- **Application submitted**: Email sent to property managers when renter submits application
+- **Application status**: Email sent to applicant when approved/rejected
+- **Maintenance created**: Email sent to org staff when ticket is created
+- **Maintenance status**: Email sent to requester when status changes
+
+### 2. Background Job Scheduler
+- Installed `node-cron` for job scheduling
+- Created `src/services/scheduler.ts` with automated jobs:
+  - Payment status updates (`upcoming` → `due` → `late`)
+  - Rent reminders 3 days before due date
+  - Rent reminders on due date
+  - Late payment notifications
+  - Lease expiry reminders (30, 14, 7 days before)
+- Created `scripts/scheduler.ts` CLI runner
+- Added npm scripts: `scheduler`, `scheduler:once`
+- Scheduler runs daily at 8:00 AM (configurable timezone)
+
+### 3. Documentation Updates
+- Comprehensive README update with:
+  - Full feature list
+  - All available commands
+  - Running the full stack instructions
+  - Updated roadmap
+- Created configuration guides:
+  - `docs/SMTP_SETUP.md` - Gmail, SendGrid, SES, Mailgun, Postmark
+  - `docs/STRIPE_SETUP.md` - API keys, webhooks, testing
+  - `docs/PRODUCTION_SETUP.md` - Docker, PM2, Vercel, backups, security
+
+---
+
+## Previous Session Work
+
+### Renter Dashboard Sidebar Navigation
 - Created `RenterSidebar.tsx` - collapsible sidebar matching landlord design
-- Created `RenterSidebarWrapper.tsx` - client component wrapper
-- Created `src/app/renter/layout.tsx` - layout with sidebar integration
-- Navigation items: Dashboard, Browse Listings, My Applications, My Lease, Payments, Maintenance (with sub-menu), Documents, Settings
+- Navigation: Dashboard, Browse, Applications, Lease, Payments, Maintenance, Documents, Settings
 
-### 2. Maintenance Worker Dashboard Sidebar Navigation
-- Created `MaintenanceSidebar.tsx` - collapsible sidebar with query-param based navigation
-- Created `MaintenanceSidebarWrapper.tsx` - client component wrapper
-- Created `src/app/maintenance/layout.tsx` - layout with sidebar integration
-- Navigation items: Dashboard, My Tickets, All Tickets, By Status (sub-menu), By Priority (sub-menu), Settings
+### Maintenance Worker Dashboard Sidebar Navigation
+- Created `MaintenanceSidebar.tsx` - collapsible sidebar with query-param filtering
+- Navigation: Dashboard, My Tickets, All Tickets, By Status, By Priority, Settings
 
-### 3. Mobile Responsiveness
+### Mobile Responsiveness
 - Created `MobileMenuProvider.tsx` - context for mobile menu state
-- Added floating action button (FAB) hamburger menu in bottom-right
-- Added overlay that closes menu on click
-- Added escape key handler to close menu
+- FAB hamburger menu in bottom-right
+- Overlay and escape key handler
 - CSS media queries for screens under 768px
-- Sidebars slide in from left on mobile
 
-### 4. Email Notifications System
+### Email Notifications System
 - Created `src/services/email.ts` with Nodemailer integration
-- Email templates for:
-  - Organization invites (`sendInviteEmail`)
-  - Application submitted notifications (`sendApplicationSubmittedEmail`)
-  - Application status updates (`sendApplicationStatusEmail`)
-  - Maintenance request created (`sendMaintenanceCreatedEmail`)
-  - Maintenance status updates (`sendMaintenanceStatusEmail`)
-  - Rent payment reminders (`sendRentReminderEmail`)
-  - Lease expiry alerts (`sendLeaseExpiringEmail`)
+- 7 email templates for various notifications
 - Graceful fallback when SMTP not configured
 
-### 5. File Uploads for Maintenance Tickets
-- Created `src/app/api/upload/route.ts` - file upload API endpoint
-- Created `src/components/FileUpload.tsx` - drag-and-drop upload component
-- Created `MaintenanceFormClient.tsx` - client form with file upload
-- Updated maintenance creation to accept photos
-- Features: drag-and-drop, preview thumbnails, remove photos, 5MB limit, JPEG/PNG/WebP/GIF support
+### File Uploads for Maintenance Tickets
+- Created upload API endpoint and FileUpload component
+- Drag-and-drop, preview thumbnails, 5MB limit
 
-### 6. Stripe Payment Integration
-- Created `src/services/stripe.ts` - Stripe SDK wrapper
-- Created `src/app/api/payments/checkout/route.ts` - checkout session creation
-- Created `src/app/api/payments/webhook/route.ts` - payment confirmation webhook
-- Created `src/components/PayButton.tsx` - payment button component
-- Updated payments page to show Pay button when Stripe configured
-- Success/cancelled URL handling with user feedback
+### Stripe Payment Integration
+- Stripe SDK wrapper, checkout sessions, webhooks
+- PayButton component for rent payments
 
-### 7. Integration Tests
-- Created `vitest.config.ts` - Vitest configuration
-- Created `src/__tests__/setup.ts` - test setup with mocks
-- Tests for:
-  - `FileUpload.test.tsx` - 6 tests
-  - `PayButton.test.tsx` - 6 tests
-  - `MobileMenuProvider.test.tsx` - 7 tests
-  - `email.test.ts` - 6 tests
-- All 25 tests passing
-
-### New Renter Pages Created
-- `/renter/applications` - view all applications with status
-- `/renter/lease` - view active lease details and upcoming payments
-- `/renter/payments` - payment history with Stripe pay button
-- `/renter/documents` - document access (placeholder for future)
-- `/renter/settings` - user profile and preferences
-- `/renter/maintenance/new` - create maintenance request with photo upload
-
-### New Maintenance Pages Created
-- `/maintenance/settings` - worker profile and org info
+### Integration Tests
+- Vitest configuration with 25 passing tests
+- Tests for FileUpload, PayButton, MobileMenuProvider, email service
 
 ---
 
 ## What Needs To Be Done Next
 
 ### High Priority
-1. **Wire up email notifications to events** - Currently email service exists but isn't called anywhere. Need to:
-   - Send invite email when organization invite is created
-   - Send application email when application is submitted
-   - Send maintenance email when ticket is created/updated
-   - Send rent reminder emails (needs background job)
-
-2. **Background job scheduler** - For automated tasks:
-   - Daily rent payment reminders (3 days before due, on due date)
-   - Lease expiry notifications (30, 14, 7 days before)
-   - Late payment notifications
-   - Consider using `node-cron` or similar
-
-3. **Document storage** - Currently documents page is placeholder:
+1. **Document storage** - Currently documents page is placeholder:
    - Integrate with S3/R2 for file storage
    - Generate/store lease PDFs
    - Store signed documents
 
-### Medium Priority
-4. **Photo display on maintenance tickets** - Photos are stored but not displayed:
+2. **Photo display on maintenance tickets** - Photos are stored but not displayed:
    - Add photo gallery to maintenance detail page
    - Add photo viewer modal
 
-5. **Stripe webhook deployment** - Webhook needs public URL:
-   - Set up Stripe CLI for local testing
+### Medium Priority
+3. **Stripe webhook testing** - Need to verify in staging:
+   - Test with Stripe CLI locally
    - Configure production webhook endpoint
-   - Handle payment failures
+   - Handle payment failures gracefully
 
-6. **Advanced reporting** - Charts and analytics:
-   - Revenue charts
+4. **Advanced reporting** - Charts and analytics:
+   - Revenue charts over time
    - Occupancy trends
-   - Maintenance response times
+   - Maintenance response time metrics
+
+5. **Lease renewal workflow**:
+   - Auto-generate renewal offers
+   - Digital signature integration
+   - Renewal reminder notifications
 
 ### Lower Priority
-7. **Push notifications** - Browser notifications for urgent items
-8. **Multi-language support** - i18n for interface
-9. **Admin panel** - Super-admin for platform management
-10. **PWA support** - Progressive web app features
+6. **Push notifications** - Browser notifications for urgent items
+7. **Multi-language support** - i18n for interface
+8. **Admin panel** - Super-admin for platform management
+9. **PWA support** - Progressive web app features
+10. **Stripe Connect** - Payment splitting between PM/landlord
 
 ---
 
@@ -145,13 +144,23 @@ All demo users accept any password. Run `bun run db:seed` to populate.
 ## Key Commands
 
 ```bash
+# Development
 bun run dev          # Start development server
 bun run build        # Build for production
+bun run start        # Start production server
+
+# Testing
 bun run test         # Run tests (watch mode)
 bun run test:run     # Run tests once
+
+# Database
 bun run db:push      # Apply schema changes
 bun run db:seed      # Seed demo data
 bun run db:studio    # Open Drizzle Studio
+
+# Background Jobs
+npm run scheduler       # Start scheduler daemon
+npm run scheduler:once  # Run all jobs once
 ```
 
 ## Environment Variables
@@ -160,6 +169,7 @@ bun run db:studio    # Open Drizzle Studio
 # Required
 DATABASE_URL="file:./data/pms.db"
 AUTH_SECRET="your-secret"
+NEXTAUTH_URL="http://localhost:3000"
 
 # Email (optional - needed for notifications)
 SMTP_HOST="smtp.gmail.com"
@@ -179,7 +189,6 @@ STRIPE_WEBHOOK_SECRET=""
 All changes committed and pushed to `main` branch.
 
 **Latest commits:**
-- `e5ac48c` - docs: update session notes
-- `d2195f0` - feat: add comprehensive platform enhancements
-- `3077564` - feat: add collapsible sidebar navigation
-- `c0f2757` - feat: comprehensive UI/UX improvements
+- `1c49aef` - feat: add background job scheduler for automated notifications
+- `b0dea01` - feat: wire up email notifications to events
+- `fdc3f71` - docs: update session notes with completed work and next steps

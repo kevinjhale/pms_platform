@@ -10,9 +10,12 @@ A self-hostable property management system built with Next.js. Own your data, ru
 - **Application Workflow** - Submit, review, approve/reject applications
 - **Lease Management** - Create leases, track terms, manage renewals
 - **Rent Tracking** - Due dates, payment recording, late fee tracking
-- **Maintenance Requests** - Tenant submissions, landlord management, comments
-- **Reporting Dashboard** - Occupancy, revenue, maintenance, lease metrics
-- **Audit Logging** - Compliance-ready activity tracking
+- **Maintenance Requests** - Tenant submissions with photo uploads, status tracking
+- **Online Payments** - Stripe integration for rent collection
+- **Email Notifications** - Automated emails for applications, maintenance, rent reminders
+- **Background Jobs** - Scheduled tasks for payment reminders and lease alerts
+- **Reporting Dashboard** - Occupancy, revenue, maintenance metrics
+- **Mobile Responsive** - Full mobile support with collapsible navigation
 - **Docker Ready** - Single container deployment
 
 ## Tech Stack
@@ -21,6 +24,10 @@ A self-hostable property management system built with Next.js. Own your data, ru
 - **Database**: SQLite (default) or PostgreSQL
 - **ORM**: Drizzle
 - **Auth**: NextAuth.js v5
+- **Payments**: Stripe
+- **Email**: Nodemailer
+- **Scheduling**: node-cron
+- **Testing**: Vitest + React Testing Library
 - **Styling**: CSS (no framework)
 
 ## Quick Start
@@ -30,31 +37,43 @@ A self-hostable property management system built with Next.js. Own your data, ru
 - Node.js 18+ (or Bun 1.0+)
 - Bun (recommended) or npm
 
-### Development
+### Development Setup
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/kevinjhale/pms_platform.git
 cd pms_platform
 
-# Install dependencies
+# 2. Install dependencies
 bun install
 
-# Set up environment variables
+# 3. Set up environment variables
 cp .env.example .env
 # Edit .env with your settings (see Configuration below)
 
-# Push database schema
+# 4. Initialize the database
 bun run db:push
 
-# Seed demo data (optional)
+# 5. Seed demo data (recommended for development)
 bun run db:seed
 
-# Start development server
+# 6. Start development server
 bun run dev
 ```
 
 Visit `http://localhost:3000`
+
+### Running the Full Stack
+
+For a complete development environment with all features:
+
+```bash
+# Terminal 1: Start the web server
+bun run dev
+
+# Terminal 2: Start the background scheduler (optional - for automated emails)
+npm run scheduler
+```
 
 ### Production Build
 
@@ -64,6 +83,9 @@ bun run build
 
 # Start production server
 bun run start
+
+# Start background scheduler (separate process)
+npm run scheduler
 ```
 
 ## Docker Deployment
@@ -95,82 +117,86 @@ docker run -d \
 
 ## Configuration
 
+### Environment Variables
+
 Create a `.env` file in the project root:
 
 ```env
+# ============ REQUIRED ============
+
 # Database (SQLite - default)
 DATABASE_URL="file:./data/pms.db"
 
 # Or PostgreSQL
 # DATABASE_URL="postgresql://user:pass@localhost:5432/pms"
 
-# Authentication (required)
+# Authentication secret (generate with: openssl rand -base64 32)
 AUTH_SECRET="generate-a-random-string-here"
 
-# OAuth Providers (optional)
+# Base URL (required for production)
+NEXTAUTH_URL="https://your-domain.com"
+
+# ============ OPTIONAL ============
+
+# OAuth Providers
 AUTH_GOOGLE_ID=""
 AUTH_GOOGLE_SECRET=""
 AUTH_GITHUB_ID=""
 AUTH_GITHUB_SECRET=""
 
-# Base URL (for production)
-NEXTAUTH_URL="https://your-domain.com"
+# Email Notifications (see docs/SMTP_SETUP.md)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER=""
+SMTP_PASS=""
+EMAIL_FROM="noreply@your-domain.com"
+APP_NAME="PMS Platform"
+
+# Stripe Payments (see docs/STRIPE_SETUP.md)
+STRIPE_SECRET_KEY=""
+STRIPE_PUBLISHABLE_KEY=""
+STRIPE_WEBHOOK_SECRET=""
 ```
 
-### Generating AUTH_SECRET
+### Configuration Guides
 
-```bash
-openssl rand -base64 32
-```
+Detailed setup instructions for external services:
 
-## Project Structure
-
-```
-src/
-├── app/                    # Next.js App Router pages
-│   ├── landlord/          # Landlord dashboard pages
-│   ├── renter/            # Renter portal pages
-│   ├── api/               # API routes
-│   └── ...
-├── db/                    # Database layer
-│   ├── schema/            # Drizzle schema definitions
-│   └── index.ts           # Database connection
-├── services/              # Business logic
-│   ├── properties.ts
-│   ├── leases.ts
-│   ├── maintenance.ts
-│   └── ...
-├── lib/                   # Utilities
-│   ├── auth.ts           # NextAuth configuration
-│   ├── org-context.ts    # Multi-tenant context
-│   └── utils.ts
-└── components/            # Shared React components
-```
-
-## Database Schema
-
-Core entities:
-
-- **Organizations** - Property management companies or independent landlords
-- **Users** - With roles (admin, manager, staff, renter)
-- **Properties** - Buildings or property groups
-- **Units** - Individual rentable units
-- **Leases** - Tenant agreements with terms
-- **Rent Payments** - Payment tracking per period
-- **Maintenance Requests** - Work orders with comments
-- **Applications** - Rental applications
-- **Audit Logs** - Activity tracking
+- **[SMTP Setup](docs/SMTP_SETUP.md)** - Configure email notifications (Gmail, SendGrid, etc.)
+- **[Stripe Setup](docs/STRIPE_SETUP.md)** - Configure online rent payments
+- **[Production Deployment](docs/PRODUCTION_SETUP.md)** - Deploy to production
 
 ## Available Scripts
 
+### Development
 ```bash
-bun run dev          # Start development server
+bun run dev          # Start development server (http://localhost:3000)
 bun run build        # Build for production
 bun run start        # Start production server
 bun run lint         # Run ESLint
-bun run db:push      # Push schema to database
+```
+
+### Testing
+```bash
+bun run test         # Run tests in watch mode
+bun run test:run     # Run tests once
+bun run test:coverage # Run tests with coverage report
+```
+
+### Database
+```bash
+bun run db:push      # Push schema changes to database
 bun run db:seed      # Seed demo data
 bun run db:studio    # Open Drizzle Studio (database UI)
+bun run db:generate  # Generate migration files
+bun run db:migrate   # Run migrations
+```
+
+### Background Jobs
+```bash
+npm run scheduler       # Start scheduler daemon (runs daily at 8am)
+npm run scheduler:once  # Run all scheduled jobs once (for testing)
 ```
 
 ## Demo Accounts
@@ -210,22 +236,50 @@ After running `bun run db:seed`, the following demo accounts are available (any 
 |-------|--------------|
 | maint.joe@demo.com | Premier Property Management |
 
-## API Endpoints
+## Project Structure
 
-### Health Check
 ```
-GET /api/health
-```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── landlord/          # Landlord dashboard pages
+│   ├── renter/            # Renter portal pages
+│   ├── maintenance/       # Maintenance worker pages
+│   ├── api/               # API routes
+│   └── ...
+├── db/                    # Database layer
+│   ├── schema/            # Drizzle schema definitions
+│   └── index.ts           # Database connection
+├── services/              # Business logic
+│   ├── properties.ts      # Property management
+│   ├── leases.ts          # Lease management
+│   ├── maintenance.ts     # Maintenance requests
+│   ├── applications.ts    # Rental applications
+│   ├── email.ts           # Email notifications
+│   ├── stripe.ts          # Payment processing
+│   ├── scheduler.ts       # Background jobs
+│   └── ...
+├── lib/                   # Utilities
+│   ├── auth.ts           # NextAuth configuration
+│   ├── org-context.ts    # Multi-tenant context
+│   └── utils.ts
+├── components/            # Shared React components
+└── __tests__/            # Test files
 
-### Authentication
-```
-GET/POST /api/auth/[...nextauth]
+scripts/
+├── seed-demo-data.ts     # Demo data seeding
+└── scheduler.ts          # Background job runner
+
+docs/
+├── SMTP_SETUP.md         # Email configuration guide
+├── STRIPE_SETUP.md       # Payment configuration guide
+└── PRODUCTION_SETUP.md   # Production deployment guide
 ```
 
 ## User Roles
 
 | Role | Access |
 |------|--------|
+| Owner | Full organization access, billing |
 | Admin | Full organization access |
 | Manager | Property and tenant management |
 | Staff | Limited operational access |
@@ -233,32 +287,35 @@ GET/POST /api/auth/[...nextauth]
 
 ## Roadmap
 
-See [ROADMAP.md](./ROADMAP.md) for the full feature roadmap.
-
 ### Completed
 - [x] Database layer (Drizzle + SQLite/Postgres)
 - [x] Multi-org tenancy
 - [x] Property & unit management
 - [x] Listing portal
 - [x] Application workflow
-- [x] Docker deployment
 - [x] Lease management
 - [x] Rent tracking
-- [x] Maintenance requests
+- [x] Maintenance requests with photo uploads
 - [x] Reporting dashboard
 - [x] Audit logging
+- [x] Docker deployment
+- [x] Email notifications
+- [x] Stripe payment integration
+- [x] Background job scheduler
+- [x] Mobile responsive UI
+- [x] Test framework
 
 ### In Progress
-- [ ] Stripe Connect integration
-- [ ] Admin plugin UI
+- [ ] Document storage (S3/R2)
+- [ ] Photo gallery for maintenance tickets
 
 ### Planned
 - [ ] Payment splitting (PM/Landlord)
-- [ ] Document storage (S3/R2)
-- [ ] Email notifications
-- [ ] Background screening
-- [ ] Listing syndication
+- [ ] Background screening integration
+- [ ] Listing syndication (Zillow, Apartments.com)
 - [ ] Mobile app / PWA
+- [ ] Multi-language support (i18n)
+- [ ] Advanced analytics & charts
 
 ## Contributing
 
