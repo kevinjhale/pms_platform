@@ -1,7 +1,8 @@
-import { getDb, applications, units, properties, users } from "@/db";
-import { eq, desc, and } from "drizzle-orm";
+import { getDb, applications, units, properties, users, organizationMembers } from "@/db";
+import { eq, desc, and, or } from "drizzle-orm";
 import { generateId, now } from "@/lib/utils";
 import type { Application, NewApplication } from "@/db/schema/applications";
+import { sendApplicationSubmittedEmail, sendApplicationStatusEmail } from "./email";
 
 export type ApplicationWithDetails = Application & {
   unitTitle: string;
@@ -163,6 +164,59 @@ export async function submitApplication(id: string): Promise<void> {
       updatedAt: timestamp,
     })
     .where(eq(applications.id, id));
+
+  // Send notification to property managers/owners (non-blocking)
+  (async () => {
+    try {
+      // Get application details with property info
+      const appDetails = await db
+        .select({
+          unitNumber: units.unitNumber,
+          propertyName: properties.name,
+          organizationId: properties.organizationId,
+          applicantName: users.name,
+        })
+        .from(applications)
+        .innerJoin(units, eq(applications.unitId, units.id))
+        .innerJoin(properties, eq(units.propertyId, properties.id))
+        .innerJoin(users, eq(applications.applicantId, users.id))
+        .where(eq(applications.id, id))
+        .limit(1);
+
+      if (appDetails.length === 0) return;
+
+      const { unitNumber, propertyName, organizationId, applicantName } = appDetails[0];
+
+      // Get org admins/managers to notify
+      const members = await db
+        .select({ email: users.email })
+        .from(organizationMembers)
+        .innerJoin(users, eq(organizationMembers.userId, users.id))
+        .where(
+          and(
+            eq(organizationMembers.organizationId, organizationId),
+            or(
+              eq(organizationMembers.role, 'owner'),
+              eq(organizationMembers.role, 'admin'),
+              eq(organizationMembers.role, 'manager')
+            )
+          )
+        );
+
+      // Send email to each manager
+      for (const member of members) {
+        await sendApplicationSubmittedEmail({
+          to: member.email,
+          applicantName: applicantName || 'A renter',
+          propertyName,
+          unitNumber: unitNumber || undefined,
+          applicationId: id,
+        });
+      }
+    } catch (error) {
+      console.error('[Applications] Failed to send submitted email:', error);
+    }
+  })();
 }
 
 export async function approveApplication(
@@ -182,6 +236,9 @@ export async function approveApplication(
       updatedAt: timestamp,
     })
     .where(eq(applications.id, id));
+
+  // Send notification to applicant (non-blocking)
+  notifyApplicantOfStatus(id, 'approved');
 }
 
 export async function rejectApplication(
@@ -201,6 +258,45 @@ export async function rejectApplication(
       updatedAt: timestamp,
     })
     .where(eq(applications.id, id));
+
+  // Send notification to applicant (non-blocking)
+  notifyApplicantOfStatus(id, 'rejected');
+}
+
+// Helper to send status notification to applicant
+function notifyApplicantOfStatus(id: string, status: 'approved' | 'rejected' | 'under_review') {
+  (async () => {
+    try {
+      const db = getDb();
+      const appDetails = await db
+        .select({
+          unitNumber: units.unitNumber,
+          propertyName: properties.name,
+          applicantName: users.name,
+          applicantEmail: users.email,
+        })
+        .from(applications)
+        .innerJoin(units, eq(applications.unitId, units.id))
+        .innerJoin(properties, eq(units.propertyId, properties.id))
+        .innerJoin(users, eq(applications.applicantId, users.id))
+        .where(eq(applications.id, id))
+        .limit(1);
+
+      if (appDetails.length === 0) return;
+
+      const { unitNumber, propertyName, applicantName, applicantEmail } = appDetails[0];
+
+      await sendApplicationStatusEmail({
+        to: applicantEmail,
+        applicantName: applicantName || 'Applicant',
+        propertyName,
+        unitNumber: unitNumber || undefined,
+        status,
+      });
+    } catch (error) {
+      console.error('[Applications] Failed to send status email:', error);
+    }
+  })();
 }
 
 export async function getExistingApplication(

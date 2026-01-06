@@ -6,6 +6,7 @@ import {
   properties,
   users,
   leases,
+  organizationMembers,
 } from "@/db";
 import { eq, desc, and, or, lt, isNull } from "drizzle-orm";
 import { generateId, now } from "@/lib/utils";
@@ -14,6 +15,7 @@ import type {
   NewMaintenanceRequest,
   MaintenanceComment,
 } from "@/db/schema/maintenance";
+import { sendMaintenanceCreatedEmail, sendMaintenanceStatusEmail } from "./email";
 
 export type MaintenanceRequestWithDetails = MaintenanceRequest & {
   unitNumber: string | null;
@@ -44,6 +46,63 @@ export async function createMaintenanceRequest(
     .from(maintenanceRequests)
     .where(eq(maintenanceRequests.id, id))
     .limit(1);
+
+  // Send notification to property managers (non-blocking)
+  (async () => {
+    try {
+      // Get request details
+      const details = await db
+        .select({
+          unitNumber: units.unitNumber,
+          propertyName: properties.name,
+          organizationId: properties.organizationId,
+          requesterName: users.name,
+        })
+        .from(maintenanceRequests)
+        .innerJoin(units, eq(maintenanceRequests.unitId, units.id))
+        .innerJoin(properties, eq(units.propertyId, properties.id))
+        .innerJoin(users, eq(maintenanceRequests.requestedBy, users.id))
+        .where(eq(maintenanceRequests.id, id))
+        .limit(1);
+
+      if (details.length === 0) return;
+
+      const { unitNumber, propertyName, organizationId, requesterName } = details[0];
+
+      // Get org admins/managers to notify
+      const members = await db
+        .select({ email: users.email })
+        .from(organizationMembers)
+        .innerJoin(users, eq(organizationMembers.userId, users.id))
+        .where(
+          and(
+            eq(organizationMembers.organizationId, organizationId),
+            or(
+              eq(organizationMembers.role, 'owner'),
+              eq(organizationMembers.role, 'admin'),
+              eq(organizationMembers.role, 'manager'),
+              eq(organizationMembers.role, 'staff')
+            )
+          )
+        );
+
+      // Send email to each manager/staff
+      for (const member of members) {
+        await sendMaintenanceCreatedEmail({
+          to: member.email,
+          requesterName: requesterName || 'A tenant',
+          propertyName,
+          unitNumber: unitNumber || undefined,
+          title: data.title,
+          priority: data.priority || 'medium',
+          requestId: id,
+        });
+      }
+    } catch (error) {
+      console.error('[Maintenance] Failed to send created email:', error);
+    }
+  })();
+
   return result[0];
 }
 
@@ -379,6 +438,9 @@ export async function updateMaintenanceStatus(
     .update(maintenanceRequests)
     .set(updates)
     .where(eq(maintenanceRequests.id, id));
+
+  // Send notification to requester (non-blocking)
+  notifyRequesterOfStatus(id, status);
 }
 
 export async function completeMaintenanceRequest(
@@ -402,6 +464,46 @@ export async function completeMaintenanceRequest(
       updatedAt: timestamp,
     })
     .where(eq(maintenanceRequests.id, id));
+
+  // Send notification to requester (non-blocking)
+  notifyRequesterOfStatus(id, 'completed');
+}
+
+// Helper to send status notification to requester
+function notifyRequesterOfStatus(id: string, status: string) {
+  (async () => {
+    try {
+      const db = getDb();
+      const details = await db
+        .select({
+          title: maintenanceRequests.title,
+          propertyName: properties.name,
+          requesterName: users.name,
+          requesterEmail: users.email,
+        })
+        .from(maintenanceRequests)
+        .innerJoin(units, eq(maintenanceRequests.unitId, units.id))
+        .innerJoin(properties, eq(units.propertyId, properties.id))
+        .innerJoin(users, eq(maintenanceRequests.requestedBy, users.id))
+        .where(eq(maintenanceRequests.id, id))
+        .limit(1);
+
+      if (details.length === 0) return;
+
+      const { title, propertyName, requesterName, requesterEmail } = details[0];
+
+      await sendMaintenanceStatusEmail({
+        to: requesterEmail,
+        requesterName: requesterName || 'Tenant',
+        title,
+        propertyName,
+        status,
+        requestId: id,
+      });
+    } catch (error) {
+      console.error('[Maintenance] Failed to send status email:', error);
+    }
+  })();
 }
 
 // ============ COMMENTS ============

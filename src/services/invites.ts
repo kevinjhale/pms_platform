@@ -3,11 +3,13 @@ import {
   getDb,
   organizationInvites,
   organizationMembers,
+  organizations,
   users,
   type OrganizationInvite,
   type NewOrganizationInvite,
 } from '@/db';
 import { generateId, now } from '@/lib/utils';
+import { sendInviteEmail } from './email';
 
 const INVITE_EXPIRY_DAYS = 7;
 
@@ -77,6 +79,35 @@ export async function createInvite(data: {
   };
 
   await db.insert(organizationInvites).values(invite);
+
+  // Send invite email (non-blocking)
+  (async () => {
+    try {
+      // Get organization name
+      const org = await db
+        .select({ name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.id, data.organizationId))
+        .limit(1);
+
+      // Get inviter name
+      const inviter = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, data.invitedBy))
+        .limit(1);
+
+      await sendInviteEmail({
+        to: data.email,
+        inviterName: inviter[0]?.name || 'A team member',
+        organizationName: org[0]?.name || 'the organization',
+        role: data.role,
+        inviteToken: token,
+      });
+    } catch (error) {
+      console.error('[Invites] Failed to send invite email:', error);
+    }
+  })();
 
   return invite as OrganizationInvite;
 }
