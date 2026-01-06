@@ -37,13 +37,6 @@ export default async function PropertyDetailPage({
 
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
-      <Link
-        href="/landlord/properties"
-        style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-block', marginBottom: '1rem' }}
-      >
-        ← Back to Properties
-      </Link>
-
       {/* Property Header */}
       <div style={{
         display: 'flex',

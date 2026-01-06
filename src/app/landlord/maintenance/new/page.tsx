@@ -76,19 +76,6 @@ export default async function NewMaintenanceRequestPage() {
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem", maxWidth: "800px" }}
     >
-      <Link
-        href="/landlord/maintenance"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to Maintenance
-      </Link>
-
       <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "2rem" }}>
         Create Maintenance Request
       </h1>

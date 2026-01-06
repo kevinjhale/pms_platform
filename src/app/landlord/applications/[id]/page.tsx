@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -68,19 +67,6 @@ export default async function ApplicationReviewPage({
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem", maxWidth: "900px" }}
     >
-      <Link
-        href="/landlord/applications"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to applications
-      </Link>
-
       {/* Header */}
       <div
         className="card"

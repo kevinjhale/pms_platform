@@ -46,19 +46,6 @@ export default async function ActivityPage({
 
   return (
     <main className="container" style={{ paddingTop: "4rem", paddingBottom: "4rem" }}>
-      <Link
-        href="/landlord"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to Dashboard
-      </Link>
-
       <div style={{ marginBottom: "2rem" }}>
         <h1 style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Activity Log</h1>
         <p style={{ color: "var(--secondary)" }}>

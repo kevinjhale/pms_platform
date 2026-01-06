@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -74,19 +73,6 @@ export default async function LeaseDetailPage({
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem", maxWidth: "1000px" }}
     >
-      <Link
-        href="/landlord/leases"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to leases
-      </Link>
-
       {/* Header */}
       <div
         className="card"

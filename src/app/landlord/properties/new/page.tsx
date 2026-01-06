@@ -26,13 +26,6 @@ export default async function NewPropertyPage() {
 
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem', maxWidth: '700px' }}>
-      <Link
-        href="/landlord/properties"
-        style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-block', marginBottom: '1rem' }}
-      >
-        ← Back to Properties
-      </Link>
-
       <h1 style={{ marginBottom: '0.5rem' }}>Add New Property</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
         Enter the details for your rental property.

@@ -6,19 +6,6 @@ export default function NewListingPage() {
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem", maxWidth: "600px" }}
     >
-      <Link
-        href="/landlord/listings"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to listings
-      </Link>
-
       <div className="card" style={{ padding: "3rem", textAlign: "center" }}>
         <div style={{ fontSize: "3rem", marginBottom: "1.5rem" }}>🏠</div>
         <h1

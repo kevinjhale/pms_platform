@@ -42,7 +42,7 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
   return result[0];
 }
 
-export async function updateUser(id: string, data: Partial<Pick<User, 'name' | 'image' | 'emailVerified' | 'role'>>) {
+export async function updateUser(id: string, data: Partial<Pick<User, 'name' | 'image' | 'emailVerified' | 'role' | 'defaultLandlordPage'>>) {
   const db = getDb();
   await db
     .update(users)
@@ -80,4 +80,24 @@ export async function getOrCreateUser(data: {
     return { ...existing, name: data.name || existing.name, image: data.image || existing.image };
   }
   return createUser(data);
+}
+
+export type LandlordPage = 'dashboard' | 'properties' | 'listings' | 'applications' | 'leases' | 'maintenance' | 'reports' | 'activity' | 'screening' | 'settings';
+
+const VALID_LANDLORD_PAGES: LandlordPage[] = ['dashboard', 'properties', 'listings', 'applications', 'leases', 'maintenance', 'reports', 'activity', 'screening', 'settings'];
+
+export async function updateUserDefaultPage(userId: string, page: LandlordPage): Promise<void> {
+  if (!VALID_LANDLORD_PAGES.includes(page)) {
+    throw new Error(`Invalid page: ${page}`);
+  }
+  const db = getDb();
+  await db
+    .update(users)
+    .set({ defaultLandlordPage: page, updatedAt: now() })
+    .where(eq(users.id, userId));
+}
+
+export async function getUserDefaultPage(userId: string): Promise<LandlordPage> {
+  const user = await getUserById(userId);
+  return (user?.defaultLandlordPage as LandlordPage) || 'reports';
 }

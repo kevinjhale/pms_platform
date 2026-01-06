@@ -102,19 +102,6 @@ export default async function LandlordMaintenancePage({
 
   return (
     <main className="container" style={{ paddingTop: "4rem", paddingBottom: "4rem" }}>
-      <Link
-        href="/landlord"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to Dashboard
-      </Link>
-
       <div style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <h1 style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Maintenance</h1>

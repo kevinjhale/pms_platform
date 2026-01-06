@@ -91,19 +91,6 @@ export default async function NewLeasePage() {
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem", maxWidth: "800px" }}
     >
-      <Link
-        href="/landlord/leases"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to leases
-      </Link>
-
       <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "2rem" }}>
         Create New Lease
       </h1>

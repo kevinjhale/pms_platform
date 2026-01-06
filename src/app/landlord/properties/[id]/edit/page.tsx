@@ -40,13 +40,6 @@ export default async function EditPropertyPage({
 
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem', maxWidth: '700px' }}>
-      <Link
-        href={`/landlord/properties/${id}`}
-        style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-block', marginBottom: '1rem' }}
-      >
-        ← Back to Property
-      </Link>
-
       <h1 style={{ marginBottom: '0.5rem' }}>Edit Property</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
         Update the details for {property.name}.

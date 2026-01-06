@@ -51,13 +51,6 @@ export default async function EditUnitPage({
 
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem', maxWidth: '700px' }}>
-      <Link
-        href={`/landlord/properties/${propertyId}`}
-        style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-block', marginBottom: '1rem' }}
-      >
-        ← Back to {property.name}
-      </Link>
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ marginBottom: '0.5rem' }}>Edit {unitLabel}</h1>

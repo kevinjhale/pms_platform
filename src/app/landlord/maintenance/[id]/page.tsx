@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
@@ -101,19 +100,6 @@ export default async function MaintenanceDetailPage({
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem", maxWidth: "900px" }}
     >
-      <Link
-        href="/landlord/maintenance"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to maintenance
-      </Link>
-
       {/* Header */}
       <div
         className="card"

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getOrgContext } from "@/lib/org-context";
@@ -7,6 +6,7 @@ import { getOrganizationMembersWithUsers, getUserRoleInOrganization } from "@/se
 import { getPendingInvites } from "@/services/invites";
 import InviteForm from "./InviteForm";
 import RevokeInviteButton from "./RevokeInviteButton";
+import DefaultPageSelect from "./DefaultPageSelect";
 
 const PLATFORM_ROLE_LABELS: Record<string, string> = {
   renter: "Renter",
@@ -63,19 +63,6 @@ export default async function SettingsPage() {
 
   return (
     <main className="container" style={{ paddingTop: "4rem", paddingBottom: "4rem" }}>
-      <Link
-        href="/landlord"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to Dashboard
-      </Link>
-
       <div style={{ marginBottom: "2rem" }}>
         <h1 style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Settings</h1>
         <p style={{ color: "var(--secondary)" }}>
@@ -149,6 +136,16 @@ export default async function SettingsPage() {
                   {formatDate(user.createdAt)}
                 </span>
               </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Default Landing Page
+              </span>
+              <p style={{ fontSize: "0.75rem", color: "var(--secondary)", marginBottom: "0.5rem" }}>
+                Choose which page to show when you first open the landlord dashboard
+              </p>
+              <DefaultPageSelect currentPage={user.defaultLandlordPage || 'reports'} />
             </div>
           </div>
         </div>

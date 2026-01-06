@@ -1,22 +1,7 @@
-import Link from "next/link";
-
 export default function BackgroundScreening() {
     return (
         <main className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem' }}>
             <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                <Link
-                    href="/landlord"
-                    style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        color: "var(--secondary)",
-                        textDecoration: "none",
-                        marginBottom: "1.5rem",
-                    }}
-                >
-                    &larr; Back to Dashboard
-                </Link>
-
                 <h1 style={{ marginBottom: '1rem', fontSize: '2.5rem', fontWeight: 'bold' }}>Background Screening</h1>
                 <p style={{ color: 'var(--secondary)', marginBottom: '3rem' }}>
                     Execute secure credit, criminal, and eviction checks powered by top-tier providers.

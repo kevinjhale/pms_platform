@@ -66,19 +66,6 @@ export default async function EditListingPage(props: {
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem", maxWidth: "600px" }}
     >
-      <Link
-        href="/landlord/listings"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          color: "var(--secondary)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-        }}
-      >
-        &larr; Back to listings
-      </Link>
-
       <div className="card" style={{ padding: "2rem" }}>
         <h1
           style={{
