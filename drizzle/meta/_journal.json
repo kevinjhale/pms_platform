@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1767678359173,
+      "tag": "0000_flaky_risque",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1767678724980,
+      "tag": "0001_huge_marvel_apes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767679121718,
+      "tag": "0002_optimal_robbie_robertson",
+      "breakpoints": true
+    }
+  ]
+}

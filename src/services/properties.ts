@@ -153,6 +153,21 @@ export async function getAvailableUnits(organizationId: string): Promise<(Unit &
   return result.map(r => ({ ...r.unit, property: r.property }));
 }
 
+export async function getUnitsByOrganization(organizationId: string): Promise<(Unit & { propertyName: string })[]> {
+  const db = getDb();
+  const result = await db
+    .select({
+      unit: units,
+      propertyName: properties.name,
+    })
+    .from(units)
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .where(eq(properties.organizationId, organizationId))
+    .orderBy(properties.name, units.unitNumber);
+
+  return result.map(r => ({ ...r.unit, propertyName: r.propertyName }));
+}
+
 export async function updateUnit(id: string, data: Partial<Pick<Unit, 'unitNumber' | 'bedrooms' | 'bathrooms' | 'sqft' | 'rentAmount' | 'depositAmount' | 'status' | 'availableDate' | 'features' | 'description'>>) {
   const db = getDb();
   await db

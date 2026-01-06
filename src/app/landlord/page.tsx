@@ -94,7 +94,7 @@ export default async function LandlordDashboard() {
             <Link href="/landlord/properties/new" className="btn btn-primary" style={{ flex: 1 }}>
               Add Property
             </Link>
-            <Link href="/landlord/properties" className="btn" style={{ flex: 1, border: '1px solid var(--border-color)' }}>
+            <Link href="/landlord/properties" className="btn btn-secondary" style={{ flex: 1 }}>
               View All
             </Link>
           </div>
@@ -117,7 +117,7 @@ export default async function LandlordDashboard() {
             <Link href="/landlord/listings/new" className="btn btn-primary" style={{ flex: 1 }}>
               Create Listing
             </Link>
-            <Link href="/landlord/listings" className="btn" style={{ flex: 1, border: '1px solid var(--border-color)' }}>
+            <Link href="/landlord/listings" className="btn btn-secondary" style={{ flex: 1 }}>
               Manage
             </Link>
           </div>
@@ -141,7 +141,7 @@ export default async function LandlordDashboard() {
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>0</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Pending Review</div>
           </div>
-          <Link href="/landlord/applications" className="btn" style={{ width: '100%', border: '1px solid var(--border-color)' }}>
+          <Link href="/landlord/applications" className="btn btn-secondary" style={{ width: '100%' }}>
             View Applications
           </Link>
         </div>
@@ -162,7 +162,7 @@ export default async function LandlordDashboard() {
               Experian
             </span>
           </div>
-          <Link href="/landlord/screening" className="btn" style={{ width: '100%', border: '1px solid var(--border-color)' }}>
+          <Link href="/landlord/screening" className="btn btn-secondary" style={{ width: '100%' }}>
             Request Screening
           </Link>
         </div>
@@ -184,7 +184,7 @@ export default async function LandlordDashboard() {
             <Link href="/landlord/leases/new" className="btn btn-primary" style={{ flex: 1 }}>
               New Lease
             </Link>
-            <Link href="/landlord/leases" className="btn" style={{ flex: 1, border: '1px solid var(--border-color)' }}>
+            <Link href="/landlord/leases" className="btn btn-secondary" style={{ flex: 1 }}>
               View All
             </Link>
           </div>
@@ -203,7 +203,7 @@ export default async function LandlordDashboard() {
             <li style={{ marginBottom: '0.5rem' }}>• Status tracking & comments</li>
             <li style={{ marginBottom: '0.5rem' }}>• Cost tracking</li>
           </ul>
-          <Link href="/landlord/maintenance" className="btn" style={{ width: '100%', border: '1px solid var(--border-color)' }}>
+          <Link href="/landlord/maintenance" className="btn btn-secondary" style={{ width: '100%' }}>
             View Requests
           </Link>
         </div>
@@ -221,7 +221,7 @@ export default async function LandlordDashboard() {
             <li style={{ marginBottom: '0.5rem' }}>• Filter by entity type</li>
             <li style={{ marginBottom: '0.5rem' }}>• Compliance ready</li>
           </ul>
-          <Link href="/landlord/activity" className="btn" style={{ width: '100%', border: '1px solid var(--border-color)' }}>
+          <Link href="/landlord/activity" className="btn btn-secondary" style={{ width: '100%' }}>
             View Activity
           </Link>
         </div>
@@ -241,6 +241,24 @@ export default async function LandlordDashboard() {
           </ul>
           <Link href="/landlord/reports" className="btn btn-primary" style={{ width: '100%' }}>
             View Reports
+          </Link>
+        </div>
+
+        {/* Settings */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Settings
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            Manage your account, team, and organization settings.
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}>• Invite team members</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Manage member roles</li>
+            <li style={{ marginBottom: '0.5rem' }}>• Organization details</li>
+          </ul>
+          <Link href="/landlord/settings" className="btn btn-secondary" style={{ width: '100%' }}>
+            View Settings
           </Link>
         </div>
       </div>

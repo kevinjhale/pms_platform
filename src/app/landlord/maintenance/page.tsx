@@ -4,7 +4,12 @@ import { getOrgContext } from "@/lib/org-context";
 import {
   getMaintenanceRequestsByOrganization,
   getMaintenanceStats,
+  type MaintenanceFilters,
 } from "@/services/maintenance";
+import { getPropertiesByOrganization, getUnitsByOrganization } from "@/services/properties";
+import { archiveAllCompletedAction } from "@/app/actions/maintenance";
+import { ArchiveAllCompletedButton } from "@/components/ArchiveAllCompletedButton";
+import { MaintenanceFiltersForm } from "./MaintenanceFiltersForm";
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   open: { bg: "#fee2e2", color: "#991b1b", label: "Open" },
@@ -35,10 +40,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+type SearchParams = {
+  status?: string;
+  category?: string;
+  priority?: string;
+  propertyId?: string;
+  unitId?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  showArchived?: string;
+};
+
 export default async function LandlordMaintenancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { organization } = await getOrgContext();
 
@@ -47,28 +63,75 @@ export default async function LandlordMaintenancePage({
   }
 
   const params = await searchParams;
-  const statusFilter = params.status;
+  const showArchived = params.showArchived === "true";
 
-  const requests = await getMaintenanceRequestsByOrganization(
-    organization.id,
-    statusFilter
-  );
-  const stats = await getMaintenanceStats(organization.id);
+  // Build filters from URL params
+  const filters: MaintenanceFilters = {
+    status: params.status,
+    category: params.category,
+    priority: params.priority,
+    propertyId: params.propertyId,
+    unitId: params.unitId,
+    sortBy: (params.sortBy as MaintenanceFilters["sortBy"]) || "date",
+    sortOrder: (params.sortOrder as MaintenanceFilters["sortOrder"]) || "desc",
+    includeArchived: showArchived,
+  };
 
-  const openRequests = requests.filter(
-    (r) => r.status === "open" || r.status === "acknowledged"
+  // Check if any filters are active (excluding default sort)
+  const hasActiveFilters = !!(
+    params.status ||
+    params.category ||
+    params.priority ||
+    params.propertyId ||
+    params.unitId ||
+    (params.sortBy && params.sortBy !== "date") ||
+    (params.sortOrder && params.sortOrder !== "desc")
   );
-  const inProgressRequests = requests.filter(
-    (r) => r.status === "in_progress" || r.status === "pending_parts"
-  );
+
+  const [requests, stats, properties, allUnits] = await Promise.all([
+    getMaintenanceRequestsByOrganization(organization.id, undefined, filters),
+    getMaintenanceStats(organization.id),
+    getPropertiesByOrganization(organization.id),
+    getUnitsByOrganization(organization.id),
+  ]);
+
+  // Filter units based on selected property for the dropdown
+  const units = params.propertyId
+    ? allUnits.filter((u) => u.propertyId === params.propertyId)
+    : allUnits;
 
   return (
     <main className="container" style={{ paddingTop: "4rem", paddingBottom: "4rem" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Maintenance</h1>
-        <p style={{ color: "var(--secondary)" }}>
-          Manage maintenance requests from tenants.
-        </p>
+      <Link
+        href="/landlord"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          color: "var(--secondary)",
+          textDecoration: "none",
+          marginBottom: "1.5rem",
+        }}
+      >
+        &larr; Back to Dashboard
+      </Link>
+
+      <div style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h1 style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Maintenance</h1>
+          <p style={{ color: "var(--secondary)" }}>
+            Manage maintenance requests from tenants.
+          </p>
+        </div>
+        <Link
+          href="/landlord/maintenance/new"
+          className="btn btn-primary"
+          style={{
+            padding: "0.75rem 1.5rem",
+            textDecoration: "none",
+          }}
+        >
+          Create Ticket
+        </Link>
       </div>
 
       {/* Stats */}
@@ -100,60 +163,30 @@ export default async function LandlordMaintenancePage({
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
-        <Link
-          href="/landlord/maintenance"
-          className="btn"
-          style={{
-            padding: "0.5rem 1rem",
-            textDecoration: "none",
-            backgroundColor: !statusFilter ? "var(--primary)" : "transparent",
-            color: !statusFilter ? "white" : "inherit",
-            border: "1px solid var(--border)",
+      {/* Filters */}
+      <MaintenanceFiltersForm
+        currentFilters={params}
+        properties={properties}
+        units={units}
+        allUnits={allUnits}
+        hasActiveFilters={hasActiveFilters}
+        showArchived={showArchived}
+      />
+
+      {/* Archive Controls */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", marginBottom: "1rem" }}>
+        <ArchiveAllCompletedButton
+          onArchiveAll={async () => {
+            "use server";
+            return await archiveAllCompletedAction();
           }}
-        >
-          All
-        </Link>
-        <Link
-          href="/landlord/maintenance?status=open"
-          className="btn"
-          style={{
-            padding: "0.5rem 1rem",
-            textDecoration: "none",
-            backgroundColor: statusFilter === "open" ? "var(--primary)" : "transparent",
-            color: statusFilter === "open" ? "white" : "inherit",
-            border: "1px solid var(--border)",
-          }}
-        >
-          Open
-        </Link>
-        <Link
-          href="/landlord/maintenance?status=in_progress"
-          className="btn"
-          style={{
-            padding: "0.5rem 1rem",
-            textDecoration: "none",
-            backgroundColor: statusFilter === "in_progress" ? "var(--primary)" : "transparent",
-            color: statusFilter === "in_progress" ? "white" : "inherit",
-            border: "1px solid var(--border)",
-          }}
-        >
-          In Progress
-        </Link>
-        <Link
-          href="/landlord/maintenance?status=completed"
-          className="btn"
-          style={{
-            padding: "0.5rem 1rem",
-            textDecoration: "none",
-            backgroundColor: statusFilter === "completed" ? "var(--primary)" : "transparent",
-            color: statusFilter === "completed" ? "white" : "inherit",
-            border: "1px solid var(--border)",
-          }}
-        >
-          Completed
-        </Link>
+        />
+      </div>
+
+      {/* Results count */}
+      <div style={{ marginBottom: "1rem", color: "var(--secondary)", fontSize: "0.875rem" }}>
+        Showing {requests.length} request{requests.length !== 1 ? "s" : ""}
+        {hasActiveFilters && " (filtered)"}
       </div>
 
       {/* Requests List */}
@@ -179,10 +212,34 @@ export default async function LandlordMaintenancePage({
             <tbody>
               {requests.map((request) => {
                 const statusStyle = STATUS_STYLES[request.status] || STATUS_STYLES.open;
+                const isArchived = request.archived;
                 return (
-                  <tr key={request.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <tr
+                    key={request.id}
+                    style={{
+                      borderBottom: "1px solid var(--border)",
+                      backgroundColor: isArchived ? "#f8fafc" : "transparent",
+                      opacity: isArchived ? 0.7 : 1,
+                    }}
+                  >
                     <td style={{ padding: "1rem" }}>
-                      <div style={{ fontWeight: "500" }}>{request.title}</div>
+                      <div style={{ fontWeight: "500", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        {request.title}
+                        {isArchived && (
+                          <span
+                            style={{
+                              fontSize: "0.625rem",
+                              padding: "0.125rem 0.375rem",
+                              backgroundColor: "#e2e8f0",
+                              color: "#64748b",
+                              borderRadius: "4px",
+                              fontWeight: "500",
+                            }}
+                          >
+                            Archived
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: "0.75rem", color: "var(--secondary)" }}>
                         by {request.requestedByName}
                       </div>
@@ -254,10 +311,26 @@ export default async function LandlordMaintenancePage({
       ) : (
         <div className="card" style={{ padding: "3rem", textAlign: "center" }}>
           <p style={{ color: "var(--secondary)" }}>
-            {statusFilter
-              ? `No ${statusFilter.replace("_", " ")} maintenance requests.`
+            {hasActiveFilters
+              ? "No maintenance requests match your filters."
               : "No maintenance requests yet."}
           </p>
+          {hasActiveFilters && (
+            <Link
+              href="/landlord/maintenance"
+              className="btn"
+              style={{
+                marginTop: "1rem",
+                display: "inline-block",
+                padding: "0.5rem 1rem",
+                border: "1px solid var(--border)",
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              Clear Filters
+            </Link>
+          )}
         </div>
       )}
     </main>

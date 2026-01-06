@@ -19,6 +19,19 @@ export default async function PropertiesPage() {
 
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
+      <Link
+        href="/landlord"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          color: 'var(--text-secondary)',
+          textDecoration: 'none',
+          marginBottom: '1.5rem',
+        }}
+      >
+        &larr; Back to Dashboard
+      </Link>
+
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',

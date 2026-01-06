@@ -112,11 +112,18 @@ export default async function MaintenanceTicketPage({
             }}>
               <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', color: '#166534' }}>Resolution</h3>
               <p style={{ whiteSpace: 'pre-wrap' }}>{request.resolutionSummary}</p>
-              {request.actualCost && (
-                <p style={{ marginTop: '0.5rem', fontWeight: 500 }}>
-                  Cost: ${(request.actualCost / 100).toFixed(2)}
-                </p>
-              )}
+              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem' }}>
+                {request.hoursSpent != null && (
+                  <p style={{ fontWeight: 500 }}>
+                    Hours: {request.hoursSpent}
+                  </p>
+                )}
+                {request.actualCost != null && (
+                  <p style={{ fontWeight: 500 }}>
+                    Cost: ${(request.actualCost / 100).toFixed(2)}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -295,6 +302,20 @@ export default async function MaintenanceTicketPage({
                     borderRadius: '6px',
                     minHeight: '80px',
                     resize: 'vertical',
+                    marginBottom: '0.5rem',
+                  }}
+                />
+                <input
+                  type="number"
+                  name="hoursSpent"
+                  placeholder="Hours spent"
+                  step="0.25"
+                  min="0"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
                     marginBottom: '0.5rem',
                   }}
                 />

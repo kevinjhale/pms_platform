@@ -46,14 +46,16 @@ export async function completeTicketAction(id: string, formData: FormData) {
 
   const resolutionSummary = formData.get('resolutionSummary') as string;
   const actualCostStr = formData.get('actualCost') as string;
+  const hoursSpentStr = formData.get('hoursSpent') as string;
 
   if (!resolutionSummary || resolutionSummary.trim().length === 0) {
     throw new Error('Resolution summary is required');
   }
 
   const actualCost = actualCostStr ? dollarsToCents(parseFloat(actualCostStr)) : undefined;
+  const hoursSpent = hoursSpentStr ? parseFloat(hoursSpentStr) : undefined;
 
-  await completeMaintenanceRequest(id, session.user.id, resolutionSummary.trim(), actualCost);
+  await completeMaintenanceRequest(id, session.user.id, resolutionSummary.trim(), actualCost, hoursSpent);
   revalidatePath(`/maintenance/${id}`);
   revalidatePath('/maintenance');
 }

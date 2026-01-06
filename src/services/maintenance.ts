@@ -7,7 +7,7 @@ import {
   users,
   leases,
 } from "@/db";
-import { eq, desc, and, or } from "drizzle-orm";
+import { eq, desc, and, or, lt, isNull } from "drizzle-orm";
 import { generateId, now } from "@/lib/utils";
 import type {
   MaintenanceRequest,
@@ -101,16 +101,57 @@ export async function getMaintenanceRequestById(
   };
 }
 
+export type MaintenanceFilters = {
+  status?: string;
+  category?: string;
+  priority?: string;
+  propertyId?: string;
+  unitId?: string;
+  sortBy?: "date" | "priority" | "status";
+  sortOrder?: "asc" | "desc";
+  includeArchived?: boolean;
+};
+
+const PRIORITY_ORDER: Record<string, number> = {
+  emergency: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+const STATUS_ORDER: Record<string, number> = {
+  open: 0,
+  acknowledged: 1,
+  in_progress: 2,
+  pending_parts: 3,
+  completed: 4,
+  cancelled: 5,
+};
+
 export async function getMaintenanceRequestsByOrganization(
   organizationId: string,
-  status?: string
+  status?: string,
+  filters?: MaintenanceFilters
 ): Promise<MaintenanceRequestWithDetails[]> {
   const db = getDb();
 
-  let query = db
+  const includeArchived = filters?.includeArchived ?? false;
+  const whereConditions = includeArchived
+    ? eq(properties.organizationId, organizationId)
+    : and(
+        eq(properties.organizationId, organizationId),
+        or(
+          eq(maintenanceRequests.archived, false),
+          isNull(maintenanceRequests.archived)
+        )
+      );
+
+  const query = db
     .select({
       request: maintenanceRequests,
       unitNumber: units.unitNumber,
+      unitId: units.id,
+      propertyId: properties.id,
       propertyName: properties.name,
       propertyAddress: properties.address,
       requestedByName: users.name,
@@ -119,15 +160,68 @@ export async function getMaintenanceRequestsByOrganization(
     .innerJoin(units, eq(maintenanceRequests.unitId, units.id))
     .innerJoin(properties, eq(units.propertyId, properties.id))
     .innerJoin(users, eq(maintenanceRequests.requestedBy, users.id))
-    .where(eq(properties.organizationId, organizationId))
+    .where(whereConditions)
     .orderBy(desc(maintenanceRequests.createdAt));
 
   const results = await query;
 
-  // Filter by status if provided
-  const filtered = status
-    ? results.filter((r) => r.request.status === status)
-    : results;
+  // Apply filters
+  let filtered = results;
+
+  // Status filter (from old param or new filters)
+  const statusFilter = filters?.status || status;
+  if (statusFilter) {
+    filtered = filtered.filter((r) => r.request.status === statusFilter);
+  }
+
+  // Category filter
+  if (filters?.category) {
+    filtered = filtered.filter((r) => r.request.category === filters.category);
+  }
+
+  // Priority filter
+  if (filters?.priority) {
+    filtered = filtered.filter((r) => r.request.priority === filters.priority);
+  }
+
+  // Property filter
+  if (filters?.propertyId) {
+    filtered = filtered.filter((r) => r.propertyId === filters.propertyId);
+  }
+
+  // Unit filter
+  if (filters?.unitId) {
+    filtered = filtered.filter((r) => r.unitId === filters.unitId);
+  }
+
+  // Apply sorting
+  const sortBy = filters?.sortBy || "date";
+  const sortOrder = filters?.sortOrder || "desc";
+
+  filtered.sort((a, b) => {
+    let comparison = 0;
+
+    switch (sortBy) {
+      case "priority":
+        comparison =
+          (PRIORITY_ORDER[a.request.priority] || 99) -
+          (PRIORITY_ORDER[b.request.priority] || 99);
+        break;
+      case "status":
+        comparison =
+          (STATUS_ORDER[a.request.status] || 99) -
+          (STATUS_ORDER[b.request.status] || 99);
+        break;
+      case "date":
+      default:
+        comparison =
+          new Date(b.request.createdAt).getTime() -
+          new Date(a.request.createdAt).getTime();
+        break;
+    }
+
+    return sortOrder === "asc" ? -comparison : comparison;
+  });
 
   return filtered.map((row) => ({
     ...row.request,
@@ -291,7 +385,8 @@ export async function completeMaintenanceRequest(
   id: string,
   completedBy: string,
   resolutionSummary: string,
-  actualCost?: number
+  actualCost?: number,
+  hoursSpent?: number
 ): Promise<void> {
   const db = getDb();
   const timestamp = now();
@@ -302,7 +397,8 @@ export async function completeMaintenanceRequest(
       completedAt: timestamp,
       completedBy,
       resolutionSummary,
-      actualCost: actualCost || null,
+      actualCost: actualCost ?? null,
+      hoursSpent: hoursSpent ?? null,
       updatedAt: timestamp,
     })
     .where(eq(maintenanceRequests.id, id));
@@ -397,4 +493,75 @@ export async function getMaintenanceStats(organizationId: string): Promise<{
     completed,
     avgResolutionDays: 0, // Would need more complex query
   };
+}
+
+// ============ ARCHIVE ============
+
+export async function archiveMaintenanceRequest(id: string): Promise<void> {
+  const db = getDb();
+  const timestamp = now();
+  await db
+    .update(maintenanceRequests)
+    .set({
+      archived: true,
+      archivedAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .where(eq(maintenanceRequests.id, id));
+}
+
+export async function unarchiveMaintenanceRequest(id: string): Promise<void> {
+  const db = getDb();
+  const timestamp = now();
+  await db
+    .update(maintenanceRequests)
+    .set({
+      archived: false,
+      archivedAt: null,
+      updatedAt: timestamp,
+    })
+    .where(eq(maintenanceRequests.id, id));
+}
+
+export async function archiveCompletedRequestsOlderThan(
+  organizationId: string,
+  days: number
+): Promise<number> {
+  const db = getDb();
+  const timestamp = now();
+  const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  // Get IDs of completed requests older than cutoff date for this organization
+  const toArchive = await db
+    .select({ id: maintenanceRequests.id })
+    .from(maintenanceRequests)
+    .innerJoin(units, eq(maintenanceRequests.unitId, units.id))
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .where(
+      and(
+        eq(properties.organizationId, organizationId),
+        eq(maintenanceRequests.status, "completed"),
+        or(
+          eq(maintenanceRequests.archived, false),
+          isNull(maintenanceRequests.archived)
+        ),
+        lt(maintenanceRequests.completedAt, cutoffDate)
+      )
+    );
+
+  if (toArchive.length === 0) return 0;
+
+  // Archive each request
+  for (const { id } of toArchive) {
+    await db
+      .update(maintenanceRequests)
+      .set({
+        archived: true,
+        archivedAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .where(eq(maintenanceRequests.id, id));
+  }
+
+  return toArchive.length;
 }

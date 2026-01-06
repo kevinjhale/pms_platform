@@ -7,8 +7,15 @@
  * - 3 property managers
  * - 1 maintenance worker
  * - 3 organizations (landlord-only, landlord+PM, PM-only)
+ * - 6 properties with 20 units
+ * - Property manager assignments
+ * - Unit photos
+ * - Leases and historical rent payments
+ * - Applications with documents
+ * - Maintenance requests with comments
+ * - Audit logs
  *
- * Run with: npx tsx scripts/seed-demo-data.ts
+ * Run with: bun run db:seed  OR  npm run db:seed
  */
 
 import { getDb } from '../src/db';
@@ -23,6 +30,10 @@ import {
   maintenanceRequests,
   maintenanceComments,
   applications,
+  propertyManagers,
+  unitPhotos,
+  applicationDocuments,
+  auditLogs,
 } from '../src/db/schema';
 import { generateId, now, dollarsToCents } from '../src/lib/utils';
 import { eq } from 'drizzle-orm';
@@ -276,6 +287,41 @@ async function seed() {
   }
 
   // ========================================
+  // PROPERTY MANAGERS
+  // ========================================
+  console.log('\nCreating property manager assignments...');
+
+  const propertyManagersData = [
+    // Lisa manages Sarah's Marina View Complex
+    { id: 'pm-assign-1', propertyId: 'prop-3', userId: 'manager-1', splitPercentage: 10, proposedBy: 'landlord-2', status: 'accepted' as const },
+    // Lisa also manages Downtown Lofts
+    { id: 'pm-assign-2', propertyId: 'prop-4', userId: 'manager-1', splitPercentage: 12, proposedBy: 'landlord-2', status: 'accepted' as const },
+    // Robert manages Valley Gardens for Mike
+    { id: 'pm-assign-3', propertyId: 'prop-5', userId: 'manager-2', splitPercentage: 15, proposedBy: 'landlord-3', status: 'accepted' as const },
+    // Maria manages Hillside Estates
+    { id: 'pm-assign-4', propertyId: 'prop-6', userId: 'manager-3', splitPercentage: 12, proposedBy: 'manager-2', status: 'accepted' as const },
+    // Pending assignment - John considering a PM for Oak Street
+    { id: 'pm-assign-5', propertyId: 'prop-2', userId: 'manager-1', splitPercentage: 8, proposedBy: 'manager-1', status: 'proposed' as const },
+  ];
+
+  for (const pm of propertyManagersData) {
+    const existing = await db.select().from(propertyManagers).where(eq(propertyManagers.id, pm.id)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(propertyManagers).values({
+        id: pm.id,
+        propertyId: pm.propertyId,
+        userId: pm.userId,
+        splitPercentage: pm.splitPercentage,
+        status: pm.status,
+        proposedBy: pm.proposedBy,
+        acceptedAt: pm.status === 'accepted' ? daysAgo(30) : null,
+        createdAt: daysAgo(60),
+      });
+      console.log(`  Assigned ${pm.userId} to ${pm.propertyId} (${pm.status})`);
+    }
+  }
+
+  // ========================================
   // UNITS
   // ========================================
   console.log('\nCreating units...');
@@ -336,6 +382,47 @@ async function seed() {
   }
 
   // ========================================
+  // UNIT PHOTOS
+  // ========================================
+  console.log('\nCreating unit photos...');
+
+  const unitPhotosData = [
+    // Sunset Apartments unit 101
+    { id: 'photo-1', unitId: 'unit-1', url: '/demo/photos/living-room-1.jpg', caption: 'Spacious living room', sortOrder: 0 },
+    { id: 'photo-2', unitId: 'unit-1', url: '/demo/photos/kitchen-1.jpg', caption: 'Modern kitchen with stainless steel appliances', sortOrder: 1 },
+    { id: 'photo-3', unitId: 'unit-1', url: '/demo/photos/bedroom-1.jpg', caption: 'Master bedroom with natural light', sortOrder: 2 },
+    // Marina View unit 301
+    { id: 'photo-4', unitId: 'unit-8', url: '/demo/photos/marina-view-living.jpg', caption: 'Living area with ocean view', sortOrder: 0 },
+    { id: 'photo-5', unitId: 'unit-8', url: '/demo/photos/marina-view-balcony.jpg', caption: 'Private balcony', sortOrder: 1 },
+    // Downtown Loft PH1
+    { id: 'photo-6', unitId: 'unit-12', url: '/demo/photos/loft-main.jpg', caption: 'Open concept loft space', sortOrder: 0 },
+    { id: 'photo-7', unitId: 'unit-12', url: '/demo/photos/loft-exposed-brick.jpg', caption: 'Exposed brick walls', sortOrder: 1 },
+    { id: 'photo-8', unitId: 'unit-12', url: '/demo/photos/loft-kitchen.jpg', caption: 'Chef\'s kitchen with island', sortOrder: 2 },
+    // Available units need photos for listings
+    { id: 'photo-9', unitId: 'unit-3', url: '/demo/photos/sunset-201-living.jpg', caption: 'Bright living room', sortOrder: 0 },
+    { id: 'photo-10', unitId: 'unit-3', url: '/demo/photos/sunset-201-bedroom.jpg', caption: 'Primary bedroom', sortOrder: 1 },
+    { id: 'photo-11', unitId: 'unit-6', url: '/demo/photos/oak-b-exterior.jpg', caption: 'Townhome exterior', sortOrder: 0 },
+    { id: 'photo-12', unitId: 'unit-6', url: '/demo/photos/oak-b-living.jpg', caption: 'Two-story living room', sortOrder: 1 },
+    { id: 'photo-13', unitId: 'unit-20', url: '/demo/photos/hillside-2-exterior.jpg', caption: 'Estate home with mountain views', sortOrder: 0 },
+    { id: 'photo-14', unitId: 'unit-20', url: '/demo/photos/hillside-2-pool.jpg', caption: 'Private pool and patio', sortOrder: 1 },
+  ];
+
+  for (const photo of unitPhotosData) {
+    const existing = await db.select().from(unitPhotos).where(eq(unitPhotos.id, photo.id)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(unitPhotos).values({
+        id: photo.id,
+        unitId: photo.unitId,
+        url: photo.url,
+        caption: photo.caption,
+        sortOrder: photo.sortOrder,
+        createdAt: daysAgo(30),
+      });
+      console.log(`  Added photo to ${photo.unitId}: ${photo.caption}`);
+    }
+  }
+
+  // ========================================
   // LEASES (for occupied units)
   // ========================================
   console.log('\nCreating leases...');
@@ -382,51 +469,131 @@ async function seed() {
   }
 
   // ========================================
-  // RENT PAYMENTS
+  // RENT PAYMENTS (historical + current)
   // ========================================
   console.log('\nCreating rent payments...');
 
-  // Create current month's payment for each lease
+  // Helper to get month start/end
+  const getMonthBounds = (monthsAgo: number) => {
+    const start = new Date();
+    start.setMonth(start.getMonth() - monthsAgo);
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + 1);
+    end.setDate(0);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  };
+
+  // Payment methods to vary the data
+  const paymentMethods: Array<'ach' | 'check' | 'card' | 'cash'> = ['ach', 'check', 'card', 'cash'];
+
+  // Create 6 months of historical payments for each lease
   for (const lease of leasesData) {
-    const paymentId = `payment-${lease.id}-current`;
-    const existing = await db.select().from(rentPayments).where(eq(rentPayments.id, paymentId)).limit(1);
+    const monthsOfHistory = Math.min(6, Math.floor(lease.startDaysAgo / 30));
 
-    if (existing.length === 0) {
-      const periodStart = new Date();
-      periodStart.setDate(1);
-      const periodEnd = new Date(periodStart);
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-      periodEnd.setDate(0);
-      const dueDate = new Date(periodStart);
-      dueDate.setDate(1);
+    for (let monthsAgo = 0; monthsAgo <= monthsOfHistory; monthsAgo++) {
+      const paymentId = `payment-${lease.id}-m${monthsAgo}`;
+      const existing = await db.select().from(rentPayments).where(eq(rentPayments.id, paymentId)).limit(1);
 
-      await db.insert(rentPayments).values({
-        id: paymentId,
-        leaseId: lease.id,
-        periodStart,
-        periodEnd,
-        dueDate,
-        amountDue: dollarsToCents(lease.rent),
-        amountPaid: dollarsToCents(lease.rent),
-        status: 'paid',
-        paidAt: daysAgo(2),
-        paymentMethod: 'ach',
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
-      console.log(`  Created payment for lease: ${lease.id}`);
+      if (existing.length === 0) {
+        const { start: periodStart, end: periodEnd } = getMonthBounds(monthsAgo);
+        const dueDate = new Date(periodStart);
+        dueDate.setDate(1);
+
+        // Vary payment status - mostly paid, some late, one partial
+        let status: 'paid' | 'late' | 'partial' | 'due' = 'paid';
+        let amountPaid = dollarsToCents(lease.rent);
+        let lateFee = 0;
+        let paidAt: Date | null = new Date(periodStart);
+        paidAt.setDate(3 + Math.floor(Math.random() * 5)); // Paid between 3rd-7th
+
+        // Add variety - one late payment, one partial
+        if (monthsAgo === 3 && lease.id === 'lease-2') {
+          status = 'late';
+          lateFee = dollarsToCents(50);
+          paidAt.setDate(12); // Paid late on the 12th
+        } else if (monthsAgo === 2 && lease.id === 'lease-7') {
+          status = 'partial';
+          amountPaid = dollarsToCents(lease.rent * 0.5);
+        } else if (monthsAgo === 0) {
+          // Current month - some not yet paid
+          if (lease.id === 'lease-8') {
+            status = 'due';
+            amountPaid = 0;
+            paidAt = null;
+          }
+        }
+
+        await db.insert(rentPayments).values({
+          id: paymentId,
+          leaseId: lease.id,
+          periodStart,
+          periodEnd,
+          dueDate,
+          amountDue: dollarsToCents(lease.rent),
+          amountPaid,
+          lateFee,
+          status,
+          paidAt,
+          paymentMethod: paidAt ? paymentMethods[Math.floor(Math.random() * paymentMethods.length)] : null,
+          createdAt: periodStart,
+          updatedAt: timestamp,
+        });
+      }
     }
+    console.log(`  Created ${monthsOfHistory + 1} payments for lease: ${lease.id}`);
   }
 
   // ========================================
-  // APPLICATIONS (for renters 9, 10 who don't have leases)
+  // APPLICATIONS (various statuses and applicants)
   // ========================================
   console.log('\nCreating applications...');
 
   const applicationsData = [
-    { id: 'app-1', unitId: 'unit-3', applicantId: 'renter-10', status: 'submitted' as const },
-    { id: 'app-2', unitId: 'unit-6', applicantId: 'renter-10', status: 'under_review' as const },
-    { id: 'app-3', unitId: 'unit-10', applicantId: 'renter-10', status: 'draft' as const },
+    // Jack Anderson - active applicant looking for places
+    {
+      id: 'app-1', unitId: 'unit-3', applicantId: 'renter-10', status: 'submitted' as const,
+      firstName: 'Jack', lastName: 'Anderson', phone: '555-0110',
+      employer: 'Tech Corp', income: 8000, daysAgo: 3,
+    },
+    {
+      id: 'app-2', unitId: 'unit-6', applicantId: 'renter-10', status: 'under_review' as const,
+      firstName: 'Jack', lastName: 'Anderson', phone: '555-0110',
+      employer: 'Tech Corp', income: 8000, daysAgo: 7,
+    },
+    {
+      id: 'app-3', unitId: 'unit-10', applicantId: 'renter-10', status: 'draft' as const,
+      firstName: 'Jack', lastName: 'Anderson', phone: '555-0110',
+      employer: 'Tech Corp', income: 8000, daysAgo: 1,
+    },
+    // Historical applications - approved (led to current leases)
+    {
+      id: 'app-4', unitId: 'unit-1', applicantId: 'renter-1', status: 'approved' as const,
+      firstName: 'Alice', lastName: 'Johnson', phone: '555-0101',
+      employer: 'Finance Inc', income: 6500, daysAgo: 200, decidedBy: 'landlord-1',
+    },
+    {
+      id: 'app-5', unitId: 'unit-8', applicantId: 'renter-4', status: 'approved' as const,
+      firstName: 'David', lastName: 'Brown', phone: '555-0104',
+      employer: 'Healthcare Co', income: 7200, daysAgo: 75, decidedBy: 'manager-1',
+    },
+    // Rejected application
+    {
+      id: 'app-6', unitId: 'unit-13', applicantId: 'renter-10', status: 'rejected' as const,
+      firstName: 'Jack', lastName: 'Anderson', phone: '555-0110',
+      employer: 'Tech Corp', income: 8000, daysAgo: 30, decidedBy: 'manager-1',
+      decisionNotes: 'Income to rent ratio below minimum threshold for this unit',
+    },
+    // Withdrawn application
+    {
+      id: 'app-7', unitId: 'unit-20', applicantId: 'renter-10', status: 'withdrawn' as const,
+      firstName: 'Jack', lastName: 'Anderson', phone: '555-0110',
+      employer: 'Tech Corp', income: 8000, daysAgo: 45,
+    },
   ];
 
   for (const app of applicationsData) {
@@ -437,20 +604,69 @@ async function seed() {
         unitId: app.unitId,
         applicantId: app.applicantId,
         status: app.status,
-        firstName: 'Jack',
-        lastName: 'Anderson',
-        phone: '555-0110',
+        firstName: app.firstName,
+        lastName: app.lastName,
+        phone: app.phone,
         currentAddress: '999 Current Ave',
         currentCity: 'Los Angeles',
         currentState: 'CA',
         currentZip: '90001',
-        employer: 'Tech Corp',
-        monthlyIncome: dollarsToCents(8000),
-        submittedAt: app.status === 'submitted' || app.status === 'under_review' ? daysAgo(3) : null,
-        createdAt: timestamp,
+        employer: app.employer,
+        monthlyIncome: dollarsToCents(app.income),
+        hasPets: app.applicantId === 'renter-4',
+        pets: app.applicantId === 'renter-4' ? [{ type: 'Dog', breed: 'Golden Retriever', weight: 65 }] : null,
+        additionalOccupants: app.applicantId === 'renter-1' ? [{ name: 'Tom Johnson', relationship: 'Spouse', age: 32 }] : null,
+        references: [
+          { name: 'Jane Doe', relationship: 'Former Landlord', phone: '555-9999' },
+          { name: 'John Smith', relationship: 'Employer', phone: '555-8888' },
+        ],
+        backgroundCheckConsent: app.status !== 'draft',
+        backgroundCheckConsentDate: app.status !== 'draft' ? daysAgo(app.daysAgo) : null,
+        submittedAt: app.status !== 'draft' ? daysAgo(app.daysAgo) : null,
+        decidedBy: (app as any).decidedBy || null,
+        decidedAt: (app as any).decidedBy ? daysAgo(app.daysAgo - 2) : null,
+        decisionNotes: (app as any).decisionNotes || null,
+        createdAt: daysAgo(app.daysAgo + 2),
         updatedAt: timestamp,
       });
-      console.log(`  Created application: ${app.applicantId} for ${app.unitId}`);
+      console.log(`  Created application: ${app.firstName} ${app.lastName} for ${app.unitId} (${app.status})`);
+    }
+  }
+
+  // ========================================
+  // APPLICATION DOCUMENTS
+  // ========================================
+  console.log('\nCreating application documents...');
+
+  const appDocsData = [
+    // Jack's submitted application documents
+    { id: 'appdoc-1', applicationId: 'app-1', type: 'id' as const, fileName: 'drivers_license.pdf', url: '/demo/docs/id-jack.pdf' },
+    { id: 'appdoc-2', applicationId: 'app-1', type: 'pay_stub' as const, fileName: 'paystub_dec.pdf', url: '/demo/docs/paystub-jack-1.pdf' },
+    { id: 'appdoc-3', applicationId: 'app-1', type: 'pay_stub' as const, fileName: 'paystub_nov.pdf', url: '/demo/docs/paystub-jack-2.pdf' },
+    { id: 'appdoc-4', applicationId: 'app-1', type: 'bank_statement' as const, fileName: 'bank_statement_q4.pdf', url: '/demo/docs/bank-jack.pdf' },
+    // Under review application
+    { id: 'appdoc-5', applicationId: 'app-2', type: 'id' as const, fileName: 'drivers_license.pdf', url: '/demo/docs/id-jack.pdf' },
+    { id: 'appdoc-6', applicationId: 'app-2', type: 'pay_stub' as const, fileName: 'paystub_recent.pdf', url: '/demo/docs/paystub-jack-3.pdf' },
+    { id: 'appdoc-7', applicationId: 'app-2', type: 'reference_letter' as const, fileName: 'landlord_reference.pdf', url: '/demo/docs/ref-jack.pdf' },
+    // Historical approved application
+    { id: 'appdoc-8', applicationId: 'app-4', type: 'id' as const, fileName: 'passport.pdf', url: '/demo/docs/id-alice.pdf' },
+    { id: 'appdoc-9', applicationId: 'app-4', type: 'tax_return' as const, fileName: 'tax_return_2024.pdf', url: '/demo/docs/tax-alice.pdf' },
+    { id: 'appdoc-10', applicationId: 'app-5', type: 'id' as const, fileName: 'state_id.pdf', url: '/demo/docs/id-david.pdf' },
+    { id: 'appdoc-11', applicationId: 'app-5', type: 'pay_stub' as const, fileName: 'paystub.pdf', url: '/demo/docs/paystub-david.pdf' },
+  ];
+
+  for (const doc of appDocsData) {
+    const existing = await db.select().from(applicationDocuments).where(eq(applicationDocuments.id, doc.id)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(applicationDocuments).values({
+        id: doc.id,
+        applicationId: doc.applicationId,
+        documentType: doc.type,
+        fileName: doc.fileName,
+        fileUrl: doc.url,
+        uploadedAt: daysAgo(5),
+      });
+      console.log(`  Added document to ${doc.applicationId}: ${doc.fileName}`);
     }
   }
 
@@ -460,57 +676,156 @@ async function seed() {
   console.log('\nCreating maintenance requests...');
 
   const maintenanceData = [
-    { id: 'maint-1', unitId: 'unit-1', requestedBy: 'renter-1', title: 'Leaky faucet in bathroom', category: 'plumbing' as const, priority: 'medium' as const, status: 'completed' as const },
-    { id: 'maint-2', unitId: 'unit-2', requestedBy: 'renter-2', title: 'AC not cooling properly', category: 'hvac' as const, priority: 'high' as const, status: 'in_progress' as const, assignedTo: 'maintenance-1' },
-    { id: 'maint-3', unitId: 'unit-5', requestedBy: 'renter-3', title: 'Broken window latch', category: 'structural' as const, priority: 'low' as const, status: 'open' as const },
-    { id: 'maint-4', unitId: 'unit-7', requestedBy: 'landlord-1', title: 'Full renovation before listing', category: 'other' as const, priority: 'medium' as const, status: 'in_progress' as const, assignedTo: 'maintenance-1' },
-    { id: 'maint-5', unitId: 'unit-9', requestedBy: 'renter-5', title: 'Dishwasher not draining', category: 'appliance' as const, priority: 'medium' as const, status: 'pending_parts' as const, assignedTo: 'maintenance-1' },
-    { id: 'maint-6', unitId: 'unit-15', requestedBy: 'renter-7', title: 'Pest control needed', category: 'pest' as const, priority: 'high' as const, status: 'acknowledged' as const },
+    // Completed requests
+    { id: 'maint-1', unitId: 'unit-1', requestedBy: 'renter-1', title: 'Leaky faucet in bathroom', category: 'plumbing' as const, priority: 'medium' as const, status: 'completed' as const, daysAgo: 15, description: 'The bathroom sink faucet has been dripping constantly for the past week. Water is pooling under the cabinet.' },
+    { id: 'maint-7', unitId: 'unit-5', requestedBy: 'renter-3', title: 'Garage door opener malfunction', category: 'electrical' as const, priority: 'medium' as const, status: 'completed' as const, daysAgo: 30, description: 'Garage door opener stopped working. Remote control batteries replaced but still not functioning.' },
+    { id: 'maint-8', unitId: 'unit-12', requestedBy: 'renter-6', title: 'Light fixture replacement', category: 'electrical' as const, priority: 'low' as const, status: 'completed' as const, daysAgo: 45, description: 'Kitchen pendant light is flickering and needs to be replaced.' },
+    // In progress
+    { id: 'maint-2', unitId: 'unit-2', requestedBy: 'renter-2', title: 'AC not cooling properly', category: 'hvac' as const, priority: 'high' as const, status: 'in_progress' as const, assignedTo: 'maintenance-1', daysAgo: 3, description: 'Air conditioning unit is running but not cooling the apartment. Temperature stays around 78°F even when set to 68°F.' },
+    { id: 'maint-4', unitId: 'unit-7', requestedBy: 'landlord-1', title: 'Full renovation before listing', category: 'other' as const, priority: 'medium' as const, status: 'in_progress' as const, assignedTo: 'maintenance-1', daysAgo: 10, description: 'Unit needs complete refresh before being listed. Paint, deep clean, and minor repairs needed.' },
+    // Pending parts
+    { id: 'maint-5', unitId: 'unit-9', requestedBy: 'renter-5', title: 'Dishwasher not draining', category: 'appliance' as const, priority: 'medium' as const, status: 'pending_parts' as const, assignedTo: 'maintenance-1', daysAgo: 7, description: 'Dishwasher leaves standing water at the bottom after each cycle. Tried running garbage disposal but issue persists.' },
+    { id: 'maint-9', unitId: 'unit-16', requestedBy: 'renter-8', title: 'Refrigerator ice maker broken', category: 'appliance' as const, priority: 'low' as const, status: 'pending_parts' as const, assignedTo: 'maintenance-1', daysAgo: 12, description: 'Ice maker stopped producing ice. Water dispenser works fine.' },
+    // Open/new requests
+    { id: 'maint-3', unitId: 'unit-5', requestedBy: 'renter-3', title: 'Broken window latch', category: 'structural' as const, priority: 'low' as const, status: 'open' as const, daysAgo: 2, description: 'Master bedroom window latch is broken. Window can still close but does not lock securely.' },
+    { id: 'maint-10', unitId: 'unit-8', requestedBy: 'renter-4', title: 'Clogged bathroom drain', category: 'plumbing' as const, priority: 'medium' as const, status: 'open' as const, daysAgo: 1, description: 'Shower drain is very slow. Water pools up to ankle level during showers.' },
+    // Acknowledged
+    { id: 'maint-6', unitId: 'unit-15', requestedBy: 'renter-7', title: 'Pest control needed', category: 'pest' as const, priority: 'high' as const, status: 'acknowledged' as const, daysAgo: 4, description: 'Seeing small ants in the kitchen near the sink area. Also noticed a few near the garbage.' },
+    { id: 'maint-11', unitId: 'unit-19', requestedBy: 'renter-9', title: 'Smoke detector beeping', category: 'security' as const, priority: 'medium' as const, status: 'acknowledged' as const, daysAgo: 1, description: 'Smoke detector in hallway beeps intermittently. Replaced battery but issue continues.' },
+    // Cancelled request
+    { id: 'maint-12', unitId: 'unit-2', requestedBy: 'renter-2', title: 'Toilet running constantly', category: 'plumbing' as const, priority: 'medium' as const, status: 'cancelled' as const, daysAgo: 20, description: 'Toilet in guest bathroom was running. Issue resolved on its own - flapper was just stuck.' },
   ];
 
   for (const maint of maintenanceData) {
     const existing = await db.select().from(maintenanceRequests).where(eq(maintenanceRequests.id, maint.id)).limit(1);
     if (existing.length === 0) {
+      const createdDate = daysAgo(maint.daysAgo);
       await db.insert(maintenanceRequests).values({
         id: maint.id,
         unitId: maint.unitId,
         requestedBy: maint.requestedBy,
         title: maint.title,
-        description: `Detailed description for: ${maint.title}`,
+        description: maint.description,
         category: maint.category,
         priority: maint.priority,
         status: maint.status,
-        assignedTo: maint.assignedTo || null,
-        assignedAt: maint.assignedTo ? daysAgo(2) : null,
-        completedAt: maint.status === 'completed' ? daysAgo(1) : null,
+        assignedTo: (maint as any).assignedTo || null,
+        assignedAt: (maint as any).assignedTo ? daysAgo(maint.daysAgo - 1) : null,
+        completedAt: maint.status === 'completed' ? daysAgo(maint.daysAgo - 3) : null,
         completedBy: maint.status === 'completed' ? 'maintenance-1' : null,
-        resolutionSummary: maint.status === 'completed' ? 'Issue resolved successfully' : null,
+        resolutionSummary: maint.status === 'completed' ? 'Issue resolved successfully. Replaced faulty component and tested operation.' : null,
         permissionToEnter: true,
-        createdAt: daysAgo(5),
+        estimatedCost: maint.status === 'completed' ? dollarsToCents(75 + Math.floor(Math.random() * 200)) : null,
+        actualCost: maint.status === 'completed' ? dollarsToCents(50 + Math.floor(Math.random() * 250)) : null,
+        rating: maint.status === 'completed' ? 4 + Math.floor(Math.random() * 2) : null,
+        createdAt: createdDate,
         updatedAt: timestamp,
       });
-      console.log(`  Created maintenance request: ${maint.title}`);
+      console.log(`  Created maintenance request: ${maint.title} (${maint.status})`);
     }
   }
 
-  // Add some comments to maintenance requests
-  const comments = [
-    { requestId: 'maint-2', authorId: 'maintenance-1', content: 'Checked the unit, compressor needs refrigerant. Will return tomorrow.', isInternal: false },
-    { requestId: 'maint-2', authorId: 'manager-1', content: 'Please prioritize this - tenant is elderly.', isInternal: true },
-    { requestId: 'maint-5', authorId: 'maintenance-1', content: 'Ordered replacement pump, expected in 3-5 days.', isInternal: false },
+  // ========================================
+  // MAINTENANCE COMMENTS
+  // ========================================
+  console.log('\nCreating maintenance comments...');
+
+  const commentsData = [
+    // AC not cooling - conversation thread
+    { id: 'comment-1', requestId: 'maint-2', authorId: 'renter-2', content: 'The temperature is getting worse. Can someone come today?', isInternal: false, daysAgo: 3 },
+    { id: 'comment-2', requestId: 'maint-2', authorId: 'manager-2', content: 'I\'ve assigned Joe to look at this today. He should arrive between 2-4pm.', isInternal: false, daysAgo: 3 },
+    { id: 'comment-3', requestId: 'maint-2', authorId: 'maintenance-1', content: 'Checked the unit, compressor needs refrigerant. Will return tomorrow with supplies.', isInternal: false, daysAgo: 2 },
+    { id: 'comment-4', requestId: 'maint-2', authorId: 'manager-1', content: 'Please prioritize this - tenant mentioned they have health concerns.', isInternal: true, daysAgo: 2 },
+    { id: 'comment-5', requestId: 'maint-2', authorId: 'maintenance-1', content: 'Returning at 10am tomorrow to add refrigerant.', isInternal: false, daysAgo: 1 },
+    // Dishwasher - parts pending
+    { id: 'comment-6', requestId: 'maint-5', authorId: 'maintenance-1', content: 'Diagnosed the issue - drain pump motor is failing. Need to order replacement part.', isInternal: false, daysAgo: 5 },
+    { id: 'comment-7', requestId: 'maint-5', authorId: 'maintenance-1', content: 'Ordered replacement pump, expected in 3-5 days.', isInternal: false, daysAgo: 4 },
+    { id: 'comment-8', requestId: 'maint-5', authorId: 'renter-5', content: 'Thanks for the update! Is there anything I should avoid doing with the dishwasher in the meantime?', isInternal: false, daysAgo: 4 },
+    { id: 'comment-9', requestId: 'maint-5', authorId: 'maintenance-1', content: 'Best to not use it until we can replace the pump. I\'ll update you when the part arrives.', isInternal: false, daysAgo: 3 },
+    // Completed request - full thread
+    { id: 'comment-10', requestId: 'maint-1', authorId: 'maintenance-1', content: 'Heading over now to assess the leak.', isInternal: false, daysAgo: 14 },
+    { id: 'comment-11', requestId: 'maint-1', authorId: 'maintenance-1', content: 'Found the issue - worn washer in the faucet. Replaced it and tested. No more leak!', isInternal: false, daysAgo: 13 },
+    { id: 'comment-12', requestId: 'maint-1', authorId: 'renter-1', content: 'Perfect, thank you so much! All fixed now.', isInternal: false, daysAgo: 13 },
+    // Pest control - internal notes
+    { id: 'comment-13', requestId: 'maint-6', authorId: 'manager-3', content: 'Scheduling pest control service for Wednesday.', isInternal: true, daysAgo: 3 },
+    { id: 'comment-14', requestId: 'maint-6', authorId: 'manager-3', content: 'Tenant notified. Pest control confirmed for Wed 9am.', isInternal: false, daysAgo: 2 },
+    // Renovation project updates
+    { id: 'comment-15', requestId: 'maint-4', authorId: 'maintenance-1', content: 'Started prep work. Walls need patching in living room and bedroom.', isInternal: false, daysAgo: 8 },
+    { id: 'comment-16', requestId: 'maint-4', authorId: 'landlord-1', content: 'Please also check the bathroom grout while you\'re there.', isInternal: false, daysAgo: 7 },
+    { id: 'comment-17', requestId: 'maint-4', authorId: 'maintenance-1', content: 'Good call - grout needs resealing. Adding to the list.', isInternal: false, daysAgo: 7 },
   ];
 
-  for (const comment of comments) {
-    const commentId = generateId();
-    await db.insert(maintenanceComments).values({
-      id: commentId,
-      requestId: comment.requestId,
-      authorId: comment.authorId,
-      content: comment.content,
-      isInternal: comment.isInternal,
-      createdAt: daysAgo(1),
-    }).onConflictDoNothing();
+  for (const comment of commentsData) {
+    const existing = await db.select().from(maintenanceComments).where(eq(maintenanceComments.id, comment.id)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(maintenanceComments).values({
+        id: comment.id,
+        requestId: comment.requestId,
+        authorId: comment.authorId,
+        content: comment.content,
+        isInternal: comment.isInternal,
+        createdAt: daysAgo(comment.daysAgo),
+      });
+    }
   }
+  console.log(`  Created ${commentsData.length} maintenance comments`);
+
+  // ========================================
+  // AUDIT LOGS
+  // ========================================
+  console.log('\nCreating audit logs...');
+
+  const auditLogsData = [
+    // Recent login activity
+    { id: 'audit-1', userId: 'renter-1', action: 'auth.login' as const, entityType: 'user' as const, entityId: 'renter-1', description: 'User logged in successfully', daysAgo: 0 },
+    { id: 'audit-2', userId: 'landlord-1', action: 'auth.login' as const, entityType: 'user' as const, entityId: 'landlord-1', description: 'User logged in successfully', daysAgo: 0 },
+    { id: 'audit-3', userId: 'manager-1', action: 'auth.login' as const, entityType: 'user' as const, entityId: 'manager-1', description: 'User logged in successfully', daysAgo: 1 },
+    { id: 'audit-4', userId: 'maintenance-1', action: 'auth.login' as const, entityType: 'user' as const, entityId: 'maintenance-1', description: 'User logged in successfully', daysAgo: 1 },
+    // Application workflow
+    { id: 'audit-5', userId: 'renter-10', action: 'application.submitted' as const, entityType: 'application' as const, entityId: 'app-1', description: 'Application submitted for unit 201', daysAgo: 3 },
+    { id: 'audit-6', userId: 'manager-1', action: 'application.reviewed' as const, entityType: 'application' as const, entityId: 'app-2', description: 'Application moved to under review', daysAgo: 5 },
+    { id: 'audit-7', userId: 'landlord-1', action: 'application.approved' as const, entityType: 'application' as const, entityId: 'app-4', description: 'Application approved - lease offer sent', daysAgo: 198 },
+    { id: 'audit-8', userId: 'manager-1', action: 'application.rejected' as const, entityType: 'application' as const, entityId: 'app-6', description: 'Application rejected - income requirements not met', daysAgo: 28 },
+    // Lease events
+    { id: 'audit-9', userId: 'landlord-1', action: 'lease.created' as const, entityType: 'lease' as const, entityId: 'lease-1', description: 'New lease created for unit 101', daysAgo: 180 },
+    { id: 'audit-10', userId: 'renter-1', action: 'lease.activated' as const, entityType: 'lease' as const, entityId: 'lease-1', description: 'Lease signed and activated', daysAgo: 179 },
+    // Payment activity
+    { id: 'audit-11', userId: 'renter-1', action: 'payment.recorded' as const, entityType: 'payment' as const, entityId: 'payment-lease-1-m0', description: 'Rent payment of $1,800 received', daysAgo: 2 },
+    { id: 'audit-12', userId: 'renter-2', action: 'payment.recorded' as const, entityType: 'payment' as const, entityId: 'payment-lease-2-m0', description: 'Rent payment of $2,400 received', daysAgo: 3 },
+    { id: 'audit-13', userId: 'manager-2', action: 'late_fee.applied' as const, entityType: 'payment' as const, entityId: 'payment-lease-2-m3', description: 'Late fee of $50 applied to payment', daysAgo: 90 },
+    // Maintenance activity
+    { id: 'audit-14', userId: 'renter-2', action: 'maintenance.created' as const, entityType: 'maintenance' as const, entityId: 'maint-2', description: 'New maintenance request: AC not cooling', daysAgo: 3 },
+    { id: 'audit-15', userId: 'manager-2', action: 'maintenance.assigned' as const, entityType: 'maintenance' as const, entityId: 'maint-2', description: 'Request assigned to Joe Fix-It', daysAgo: 3 },
+    { id: 'audit-16', userId: 'maintenance-1', action: 'maintenance.updated' as const, entityType: 'maintenance' as const, entityId: 'maint-2', description: 'Status changed to in_progress', daysAgo: 2 },
+    { id: 'audit-17', userId: 'maintenance-1', action: 'maintenance.completed' as const, entityType: 'maintenance' as const, entityId: 'maint-1', description: 'Maintenance request completed', daysAgo: 13 },
+    { id: 'audit-18', userId: 'maintenance-1', action: 'maintenance.comment_added' as const, entityType: 'maintenance' as const, entityId: 'maint-5', description: 'Comment added to maintenance request', daysAgo: 4 },
+    // Property/unit changes
+    { id: 'audit-19', userId: 'landlord-1', action: 'unit.updated' as const, entityType: 'unit' as const, entityId: 'unit-3', description: 'Unit status changed to available', daysAgo: 15 },
+    { id: 'audit-20', userId: 'manager-1', action: 'property.updated' as const, entityType: 'property' as const, entityId: 'prop-3', description: 'Property description updated', daysAgo: 30 },
+    // Organization events
+    { id: 'audit-21', userId: 'manager-2', action: 'org.member_added' as const, entityType: 'organization' as const, entityId: 'org-pm-only', description: 'Maria Santos added as manager', daysAgo: 60, orgId: 'org-pm-only' },
+    { id: 'audit-22', userId: 'landlord-2', action: 'org.member_added' as const, entityType: 'organization' as const, entityId: 'org-landlord-pm', description: 'Lisa Chen added as manager', daysAgo: 90, orgId: 'org-landlord-pm' },
+  ];
+
+  for (const log of auditLogsData) {
+    const existing = await db.select().from(auditLogs).where(eq(auditLogs.id, log.id)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(auditLogs).values({
+        id: log.id,
+        userId: log.userId,
+        userEmail: `${log.userId.replace('-', '.')}@demo.com`,
+        organizationId: (log as any).orgId || null,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        description: log.description,
+        ipAddress: '192.168.1.' + Math.floor(Math.random() * 255),
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+        createdAt: daysAgo(log.daysAgo),
+      });
+    }
+  }
+  console.log(`  Created ${auditLogsData.length} audit log entries`);
 
   console.log('\n✓ Demo data seeding complete!\n');
 

@@ -97,6 +97,15 @@ fix: resolve null pointer in checkout
 refactor: extract payment processing logic
 ```
 
+**Commit frequently** - after completing each logical unit of work:
+- After fixing a bug
+- After adding a feature or component
+- After updating configuration or documentation
+- After refactoring code
+- Before switching to a different task
+
+Don't batch multiple unrelated changes into one commit. Smaller, focused commits are easier to review, revert, and understand.
+
 ### Refactoring Approach
 
 - Suggest refactors as **separate PRs** - don't mix with feature work
@@ -140,6 +149,11 @@ Use **structured JSON logging** with:
 
 - Follow StandardJS or project ESLint config
 - async/await for async code, parallelize with Promise.all when possible
+- **Use `bun` as the package manager** (not npm/yarn/pnpm)
+  - `bun install` - install dependencies
+  - `bun run <script>` - run package.json scripts
+  - `bun add <pkg>` - add dependency
+  - `bun add -d <pkg>` - add dev dependency
 
 ### Go
 

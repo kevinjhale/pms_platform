@@ -27,8 +27,8 @@ A self-hostable property management system built with Next.js. Own your data, ru
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or pnpm
+- Node.js 18+ (or Bun 1.0+)
+- Bun (recommended) or npm
 
 ### Development
 
@@ -38,17 +38,20 @@ git clone https://github.com/kevinjhale/pms_platform.git
 cd pms_platform
 
 # Install dependencies
-npm install
+bun install
 
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your settings (see Configuration below)
 
 # Push database schema
-npm run db:push
+bun run db:push
+
+# Seed demo data (optional)
+bun run db:seed
 
 # Start development server
-npm run dev
+bun run dev
 ```
 
 Visit `http://localhost:3000`
@@ -57,10 +60,10 @@ Visit `http://localhost:3000`
 
 ```bash
 # Build for production
-npm run build
+bun run build
 
 # Start production server
-npm run start
+bun run start
 ```
 
 ## Docker Deployment
@@ -161,13 +164,51 @@ Core entities:
 ## Available Scripts
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run db:push      # Push schema to database
-npm run db:studio    # Open Drizzle Studio (database UI)
+bun run dev          # Start development server
+bun run build        # Build for production
+bun run start        # Start production server
+bun run lint         # Run ESLint
+bun run db:push      # Push schema to database
+bun run db:seed      # Seed demo data
+bun run db:studio    # Open Drizzle Studio (database UI)
 ```
+
+## Demo Accounts
+
+After running `bun run db:seed`, the following demo accounts are available (any password works):
+
+### Renters
+| Email | Notes |
+|-------|-------|
+| alice.johnson@demo.com | Has active lease in Sunset Apartments |
+| bob.smith@demo.com | Has active lease |
+| carol.williams@demo.com | Has active lease in Oak Street Townhomes |
+| david.brown@demo.com | Has active lease in Marina View |
+| emma.davis@demo.com | Has active lease |
+| frank.miller@demo.com | Has active lease in Downtown Lofts |
+| grace.wilson@demo.com | Has active lease in Valley Gardens |
+| henry.moore@demo.com | Has active lease |
+| iris.taylor@demo.com | Has active lease in Hillside Estates |
+| jack.anderson@demo.com | No lease - has pending applications |
+
+### Landlords
+| Email | Organization |
+|-------|--------------|
+| john.properties@demo.com | Johnson Properties LLC |
+| sarah.realty@demo.com | Realty & Management Group |
+| mike.estates@demo.com | Premier Property Management |
+
+### Property Managers
+| Email | Organization | Role |
+|-------|--------------|------|
+| pm.lisa@demo.com | Realty & Management Group | Manager |
+| pm.robert@demo.com | Premier Property Management | Owner |
+| pm.maria@demo.com | Premier Property Management | Manager |
+
+### Maintenance Workers
+| Email | Organization |
+|-------|--------------|
+| maint.joe@demo.com | Premier Property Management |
 
 ## API Endpoints
 

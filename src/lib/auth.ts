@@ -3,6 +3,7 @@ import { authConfig } from "./auth.config";
 import { getDb, users } from "@/db";
 import { eq } from "drizzle-orm";
 import { generateId, now } from "./utils";
+import { checkAndAcceptPendingInvites } from "@/services/invites";
 
 declare module "next-auth" {
   interface User {
@@ -24,12 +25,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       // Ensure user exists in database (server-side only)
       if (user.email) {
-        await ensureUserExists({
+        const dbUser = await ensureUserExists({
           id: user.id || generateId(),
           email: user.email,
           name: user.name || user.email.split("@")[0],
           image: user.image,
         });
+
+        // Check for and accept any pending organization invites
+        if (dbUser?.id) {
+          await checkAndAcceptPendingInvites(dbUser.id, user.email);
+        }
       }
       return true;
     },

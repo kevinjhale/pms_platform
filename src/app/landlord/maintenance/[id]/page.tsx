@@ -9,7 +9,12 @@ import {
   completeMaintenanceRequest,
   addMaintenanceComment,
 } from "@/services/maintenance";
+import {
+  archiveMaintenanceRequestAction,
+  unarchiveMaintenanceRequestAction,
+} from "@/app/actions/maintenance";
 import { centsToDollars } from "@/lib/utils";
+import { ArchiveMaintenanceButton } from "@/components/ArchiveMaintenanceButton";
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   open: { bg: "#fee2e2", color: "#991b1b", label: "Open" },
@@ -70,8 +75,11 @@ export default async function MaintenanceDetailPage({
     const actualCost = formData.get("actualCost")
       ? Math.round(parseFloat(formData.get("actualCost") as string) * 100)
       : undefined;
+    const hoursSpent = formData.get("hoursSpent")
+      ? parseFloat(formData.get("hoursSpent") as string)
+      : undefined;
 
-    await completeMaintenanceRequest(id, reqSession.user.id, resolutionSummary, actualCost);
+    await completeMaintenanceRequest(id, reqSession.user.id, resolutionSummary, actualCost, hoursSpent);
     revalidatePath(`/landlord/maintenance/${id}`);
     revalidatePath("/landlord/maintenance");
   }
@@ -272,6 +280,14 @@ export default async function MaintenanceDetailPage({
                   </dd>
                 </div>
               )}
+              {request.hoursSpent != null && (
+                <div>
+                  <dt style={{ fontSize: "0.75rem", color: "var(--secondary)" }}>Hours Spent</dt>
+                  <dd style={{ fontWeight: "500" }}>
+                    {request.hoursSpent}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
 
@@ -328,6 +344,24 @@ export default async function MaintenanceDetailPage({
                     marginBottom: "0.5rem",
                   }}
                 />
+                <div style={{ marginBottom: "0.5rem" }}>
+                  <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem" }}>
+                    Hours Spent
+                  </label>
+                  <input
+                    name="hoursSpent"
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    placeholder="0"
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid var(--border)",
+                    }}
+                  />
+                </div>
                 <div style={{ marginBottom: "0.75rem" }}>
                   <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem" }}>
                     Actual Cost ($)
@@ -369,8 +403,38 @@ export default async function MaintenanceDetailPage({
                 {new Date(request.completedAt).toLocaleDateString()}
               </p>
               {request.resolutionSummary && (
-                <p style={{ fontSize: "0.875rem" }}>{request.resolutionSummary}</p>
+                <p style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}>{request.resolutionSummary}</p>
               )}
+              {request.hoursSpent != null && (
+                <p style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                  Hours spent: {request.hoursSpent}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Archive/Unarchive */}
+          {(request.status === "completed" || request.status === "cancelled") && (
+            <div className="card" style={{ padding: "1.5rem", marginTop: "1rem" }}>
+              <h2 style={{ fontSize: "1.125rem", fontWeight: "600", marginBottom: "1rem" }}>
+                Archive
+              </h2>
+              {request.archived && request.archivedAt && (
+                <p style={{ fontSize: "0.75rem", color: "var(--secondary)", marginBottom: "0.75rem" }}>
+                  Archived on {new Date(request.archivedAt).toLocaleDateString()}
+                </p>
+              )}
+              <ArchiveMaintenanceButton
+                isArchived={request.archived ?? false}
+                onArchive={async () => {
+                  "use server";
+                  await archiveMaintenanceRequestAction(id);
+                }}
+                onUnarchive={async () => {
+                  "use server";
+                  await unarchiveMaintenanceRequestAction(id);
+                }}
+              />
             </div>
           )}
         </div>

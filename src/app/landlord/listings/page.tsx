@@ -24,6 +24,19 @@ export default async function LandlordListings() {
       className="container"
       style={{ paddingTop: "4rem", paddingBottom: "4rem" }}
     >
+      <Link
+        href="/landlord"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          color: "var(--secondary)",
+          textDecoration: "none",
+          marginBottom: "1.5rem",
+        }}
+      >
+        &larr; Back to Dashboard
+      </Link>
+
       <div
         style={{
           display: "flex",

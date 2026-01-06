@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { units } from "./properties";
 import { users } from "./users";
 import { leases } from "./leases";
@@ -64,12 +64,19 @@ export const maintenanceRequests = sqliteTable("maintenance_requests", {
   costApprovedBy: text("cost_approved_by").references(() => users.id),
   costApprovedAt: integer("cost_approved_at", { mode: "timestamp" }),
 
+  // Time tracking
+  hoursSpent: real("hours_spent"), // nullable, decimal hours (e.g., 1.5 = 1h 30m)
+
   // Photos
   photos: text("photos", { mode: "json" }).$type<string[]>(),
 
   // Tenant satisfaction
   rating: integer("rating"), // 1-5
   feedback: text("feedback"),
+
+  // Archive
+  archived: integer("archived", { mode: "boolean" }).default(false),
+  archivedAt: integer("archived_at", { mode: "timestamp" }),
 
   // Timestamps
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),

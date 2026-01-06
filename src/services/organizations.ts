@@ -69,6 +69,25 @@ export async function getOrganizationMembers(organizationId: string) {
     .where(eq(organizationMembers.organizationId, organizationId));
 }
 
+export async function getOrganizationMembersWithUsers(organizationId: string) {
+  const db = getDb();
+  const { users } = await import('@/db');
+
+  return db
+    .select({
+      member: organizationMembers,
+      user: {
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        image: users.image,
+      },
+    })
+    .from(organizationMembers)
+    .innerJoin(users, eq(organizationMembers.userId, users.id))
+    .where(eq(organizationMembers.organizationId, organizationId));
+}
+
 export async function addOrganizationMember(data: {
   organizationId: string;
   userId: string;

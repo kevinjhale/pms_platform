@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-01-05
 
 ## Project Overview
 
@@ -70,17 +70,19 @@ All demo users accept any password.
 
 ```bash
 # Development
-npm run dev
+bun run dev
 
 # Database
-npm run db:push     # Apply schema changes
-npm run db:seed     # Seed demo data
-npm run db:studio   # Open Drizzle Studio
+bun run db:push     # Apply schema changes
+bun run db:seed     # Seed demo data
+bun run db:studio   # Open Drizzle Studio
 
 # Build
-npm run build
-npm run start
+bun run build
+bun run start
 ```
+
+**Note**: Project uses `bun` as the package manager (configured in `claude.md`).
 
 ## Architecture Notes
 
@@ -116,6 +118,12 @@ npm run start
 
 - `20260104515notesforclaude.md` - Original issue notes (can be deleted)
 - `SESSION_NOTES.md` - This file (update or delete when done)
+
+## Session Updates (2026-01-05)
+
+- Switched package manager from `npm` to `bun`
+- Updated `claude.md` with bun usage instructions
+- Development environment verified: Node.js v24.12.0, Git 2.40.1, VS Code 1.93.1, Bun installed
 
 ## Git Status
 

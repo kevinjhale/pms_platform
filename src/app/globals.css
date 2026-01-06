@@ -105,6 +105,28 @@ a {
   transform: translateY(-1px);
 }
 
+.btn-secondary {
+  background-color: transparent;
+  color: var(--surface-foreground);
+  border: 1px solid var(--secondary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--surface);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--surface-foreground);
+  border: 1px solid var(--secondary);
+}
+
+.btn-outline:hover {
+  background-color: var(--surface);
+  transform: translateY(-1px);
+}
+
 .card {
   background-color: var(--surface);
   border: 1px solid var(--border);
@@ -120,11 +142,7 @@ a {
   -webkit-text-fill-color: transparent;
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  border-color: var(--accent);
-  box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.1);
-}
+/* Card hover effect removed - hover effects should only apply to interactive elements like buttons */
 
 .input-field:focus {
   outline: none;
