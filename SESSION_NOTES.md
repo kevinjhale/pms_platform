@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-05
+**Last Updated**: 2026-01-06
 
 ## Project Overview
 
@@ -8,123 +8,130 @@ Property Management System (PMS) - a multi-tenant platform for landlords, proper
 
 ## Current State
 
-All issues from `20260104515notesforclaude.md` have been addressed and the corresponding GitHub issues closed.
+The landlord dashboard has been significantly updated with a collapsible sidebar navigation and many UI/UX improvements.
 
-### Completed Work
+## Session Work (2026-01-06)
 
-| Issue | Description | Commit |
-|-------|-------------|--------|
-| #41 | Middleware deprecation warning | Migrated `middleware.ts` → `proxy.ts` |
-| #42 | Renter routing to wrong dashboard | Renters skip org check, go to `/renter` |
-| #43 | Onboarding missing user type selection | Created `/select-role` page |
-| #44 | No application workflow | Already existed - closed |
-| #45 | No demo listings | Seed script creates available units |
-| #46 | Property form Client Component error | Extracted delete button to client component |
-| #47 | Consolidate maintenance pages | Already correct pattern - closed |
-| #48 | Comprehensive demo data | Created seed script |
-| #49 | Maintenance worker actor | New dashboard at `/maintenance` |
+### Commit: c0f2757 - UI/UX Improvements
+| Change | Description |
+|--------|-------------|
+| Back arrows | Added "← Back to Dashboard" links to all sub-sections |
+| Table hover | Removed `.card:hover` animation on tables |
+| Button borders | Added `.btn-secondary` class with visible dark borders |
+| Hours spent | Added `hoursSpent` field to maintenance schema + UI |
+| Edit pages fix | Created missing `/landlord/properties/[id]/edit` and `units/[unitId]/edit` routes |
+| Create ticket | New `/landlord/maintenance/new` page for landlord/PM |
+| Archive | Added archive/unarchive + bulk "Archive All Completed (7+ days)" |
+| Filtering | Added filters for category, status, priority, property, unit + sorting |
+| Settings page | New `/landlord/settings` showing user ID, email, role, org info |
+| Org invites | Full invite system with pending invites, revoke, auto-accept on login |
+| Seed data | Expanded with all entities (payments, documents, audit logs) |
+| README | Updated with demo accounts and bun commands |
+| claude.md | Updated to commit more frequently |
 
-### Recent Commits
+### Commit: 3077564 - Sidebar Navigation
+| Change | Description |
+|--------|-------------|
+| LandlordSidebar | Collapsible sidebar component (250px expanded, 60px collapsed) |
+| Drillable menus | Properties, Listings, Leases, Maintenance have sub-menus |
+| Quick actions | "+" badges for Add Property, Create Listing, Create Lease, Create Ticket |
+| Default page | User preference for landing page (defaults to Reports) |
+| Layout | New `/landlord/layout.tsx` with sidebar + main content |
+| Removed | Back buttons from all sub-pages (sidebar handles navigation) |
+| Redirect | `/landlord` redirects to user's preferred default page |
 
+### Schema Changes
+- `maintenance_requests`: Added `hoursSpent`, `archived`, `archivedAt`
+- `users`: Added `defaultLandlordPage` preference
+- New `organization_invites` table for invite system
+
+### New Files Created
 ```
-3dd139a chore: add db:seed script for demo data
-73e75f3 feat: add maintenance worker dashboard and ticket management
-9621d67 feat: add comprehensive demo data with seed script
-b8fa6ff fix: remove confusing user type question from onboarding
-52dc3d3 feat: add user role selection page for new OAuth users
-73c2651 fix: route renters directly to renter dashboard, skip org check
-def95c1 fix: migrate middleware.ts to proxy.ts for Next.js 16
-6b3fe35 fix: extract delete button to client component to resolve onClick error
+src/components/LandlordSidebar.tsx
+src/components/LandlordSidebarWrapper.tsx
+src/components/ArchiveMaintenanceButton.tsx
+src/components/ArchiveAllCompletedButton.tsx
+src/components/DeleteUnitButton.tsx
+src/app/landlord/layout.tsx
+src/app/landlord/settings/page.tsx
+src/app/landlord/settings/DefaultPageSelect.tsx
+src/app/landlord/settings/InviteForm.tsx
+src/app/landlord/settings/RevokeInviteButton.tsx
+src/app/landlord/maintenance/new/page.tsx
+src/app/landlord/maintenance/MaintenanceFiltersForm.tsx
+src/app/landlord/properties/[id]/edit/page.tsx
+src/app/landlord/properties/[id]/units/[unitId]/edit/page.tsx
+src/app/actions/maintenance.ts
+src/app/actions/invites.ts
+src/app/actions/users.ts
+src/db/schema/invites.ts
+src/services/invites.ts
 ```
 
 ## Demo Credentials
 
-All demo users accept any password.
+All demo users accept any password. Run `bun run db:seed` to populate.
 
 ### Renters (10)
-- alice.johnson@demo.com (has active lease)
-- bob.smith@demo.com (has active lease)
-- carol.williams@demo.com (has active lease)
-- david.brown@demo.com (has active lease)
-- emma.davis@demo.com (has active lease)
-- frank.miller@demo.com (has active lease)
-- grace.wilson@demo.com (has active lease)
-- henry.moore@demo.com (has active lease)
-- iris.taylor@demo.com (has active lease)
+- alice.johnson@demo.com (has active lease in Sunset Apartments)
+- bob.smith@demo.com, carol.williams@demo.com, david.brown@demo.com
+- emma.davis@demo.com, frank.miller@demo.com, grace.wilson@demo.com
+- henry.moore@demo.com, iris.taylor@demo.com
 - jack.anderson@demo.com (no lease, has pending applications)
 
 ### Landlords (3)
-- john.properties@demo.com → Johnson Properties LLC (org-landlord-only)
-- sarah.realty@demo.com → Realty & Management Group (org-landlord-pm)
-- mike.estates@demo.com → Premier Property Management (org-pm-only)
+- john.properties@demo.com → Johnson Properties LLC
+- sarah.realty@demo.com → Realty & Management Group
+- mike.estates@demo.com → Premier Property Management
 
 ### Property Managers (3)
-- pm.lisa@demo.com → Realty & Management Group
-- pm.robert@demo.com → Premier Property Management (owner)
-- pm.maria@demo.com → Premier Property Management
+- pm.lisa@demo.com → Realty & Management Group (Manager)
+- pm.robert@demo.com → Premier Property Management (Owner)
+- pm.maria@demo.com → Premier Property Management (Manager)
 
 ### Maintenance Worker (1)
-- maint.joe@demo.com → Premier Property Management (staff)
+- maint.joe@demo.com → Premier Property Management (Staff)
 
 ## Key Commands
 
 ```bash
-# Development
-bun run dev
-
-# Database
-bun run db:push     # Apply schema changes
-bun run db:seed     # Seed demo data
-bun run db:studio   # Open Drizzle Studio
-
-# Build
-bun run build
-bun run start
+bun run dev          # Start development server
+bun run build        # Build for production
+bun run db:push      # Apply schema changes
+bun run db:seed      # Seed demo data
+bun run db:studio    # Open Drizzle Studio
 ```
 
-**Note**: Project uses `bun` as the package manager (configured in `claude.md`).
+## Sidebar Navigation Structure
 
-## Architecture Notes
-
-### User Roles (Platform-level)
-- `renter` → `/renter` dashboard
-- `landlord` → `/landlord` dashboard (requires organization)
-- `manager` → `/landlord` dashboard (requires organization)
-- `maintenance` → `/maintenance` dashboard
-
-### Organization Roles (Per-org)
-- `owner`, `admin`, `manager`, `staff`
-
-### Key Files Changed
-
-- `src/proxy.ts` - Route protection (was middleware.ts)
-- `src/app/dashboard/page.tsx` - Role-based routing
-- `src/app/select-role/page.tsx` - New OAuth user role selection
-- `src/app/maintenance/` - Maintenance worker dashboard
-- `src/services/maintenance.ts` - Added worker-specific queries
-- `src/db/schema/users.ts` - Added `role` column and `maintenance` enum
-- `scripts/seed-demo-data.ts` - Comprehensive demo data
+```
+📊 Reports & Analytics (default landing)
+🏠 Dashboard
+🏢 Properties → View All, + Add Property
+⭐ Listings → View Listings, + Create Listing
+📧 Applications
+📝 Leases → View Leases, + Create Lease
+🔧 Maintenance → View Requests, + Create Ticket
+📋 Activity Log
+✓ Screening
+⚙ Settings
+```
 
 ## Potential Next Steps
 
-1. **Testing**: Add integration tests for the new flows
-2. **UI Polish**: Improve styling consistency across dashboards
-3. **Notifications**: Add email notifications for applications/maintenance
-4. **File Uploads**: Enable photo uploads for maintenance tickets
+1. **Renter dashboard sidebar**: Apply same sidebar pattern to renter dashboard
+2. **Maintenance worker sidebar**: Apply same sidebar pattern to maintenance dashboard
+3. **Email notifications**: Send emails for invites, applications, maintenance updates
+4. **File uploads**: Enable photo uploads for maintenance tickets
 5. **Payments**: Integrate Stripe for rent payments
-6. **Reports**: Expand reporting/analytics features
+6. **Testing**: Add integration tests for new flows
+7. **Mobile responsiveness**: Ensure sidebar works well on mobile (hamburger menu)
 
 ## Files to Review
 
-- `20260104515notesforclaude.md` - Original issue notes (can be deleted)
-- `SESSION_NOTES.md` - This file (update or delete when done)
-
-## Session Updates (2026-01-05)
-
-- Switched package manager from `npm` to `bun`
-- Updated `claude.md` with bun usage instructions
-- Development environment verified: Node.js v24.12.0, Git 2.40.1, VS Code 1.93.1, Bun installed
+- `notesforclaude.md` - Original task notes from user testing
+- `SESSION_NOTES.md` - This file
 
 ## Git Status
 
-All changes committed and pushed to `main` branch. No uncommitted work.
+All changes committed and pushed to `main` branch. Latest commit: `3077564`
