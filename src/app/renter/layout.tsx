@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { getOrgContext } from '@/lib/org-context';
-import LandlordSidebarWrapper from '@/components/LandlordSidebarWrapper';
+import RenterSidebarWrapper from '@/components/RenterSidebarWrapper';
 import { MobileMenuProvider } from '@/components/MobileMenuProvider';
 
-export default async function LandlordLayout({
+export default async function RenterLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -12,11 +11,6 @@ export default async function LandlordLayout({
   const session = await auth();
   if (!session?.user) {
     redirect('/login');
-  }
-
-  const { organization } = await getOrgContext();
-  if (!organization) {
-    redirect('/onboarding');
   }
 
   return (
@@ -27,7 +21,7 @@ export default async function LandlordLayout({
           minHeight: '100vh',
         }}
       >
-        <LandlordSidebarWrapper />
+        <RenterSidebarWrapper />
         <main
           className="main-content-mobile"
           style={{

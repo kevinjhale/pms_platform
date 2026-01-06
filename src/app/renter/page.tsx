@@ -31,8 +31,11 @@ export default async function RenterDashboard() {
   );
 
   return (
-    <main className="container" style={{ paddingTop: "4rem", paddingBottom: "4rem" }}>
-      <h1 style={{ marginBottom: "2rem" }}>Renter Dashboard</h1>
+    <main className="container" style={{ paddingTop: "2rem", paddingBottom: "4rem" }}>
+      <h1 style={{ marginBottom: "0.5rem" }}>Dashboard</h1>
+      <p style={{ color: "var(--secondary)", marginBottom: "2rem" }}>
+        Welcome back{session?.user?.name ? `, ${session.user.name.split(' ')[0]}` : ''}!
+      </p>
 
       {/* Active Lease Banner */}
       {activeLease && (

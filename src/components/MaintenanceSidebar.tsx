@@ -14,81 +14,61 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     label: 'Dashboard',
-    href: '/landlord',
+    href: '/maintenance',
     icon: '\u2302', // House
   },
   {
-    label: 'Properties',
-    icon: '\u2616', // Building
-    children: [
-      { label: 'View All Properties', href: '/landlord/properties' },
-      { label: 'Add Property', href: '/landlord/properties/new', isQuickAction: true },
-    ],
-  },
-  {
-    label: 'Listings',
-    icon: '\u2606', // Star
-    children: [
-      { label: 'View Listings', href: '/landlord/listings' },
-      { label: 'Create Listing', href: '/landlord/listings/new', isQuickAction: true },
-    ],
-  },
-  {
-    label: 'Applications',
-    href: '/landlord/applications',
-    icon: '\u2709', // Envelope
-  },
-  {
-    label: 'Leases',
-    icon: '\u270D', // Writing hand
-    children: [
-      { label: 'View Leases', href: '/landlord/leases' },
-      { label: 'Create Lease', href: '/landlord/leases/new', isQuickAction: true },
-    ],
-  },
-  {
-    label: 'Maintenance',
+    label: 'My Tickets',
+    href: '/maintenance?view=my',
     icon: '\u2692', // Hammer and wrench
+  },
+  {
+    label: 'All Tickets',
+    href: '/maintenance?view=all',
+    icon: '\u2630', // List
+  },
+  {
+    label: 'By Status',
+    icon: '\u2022', // Bullet
     children: [
-      { label: 'View Requests', href: '/landlord/maintenance' },
-      { label: 'Create Ticket', href: '/landlord/maintenance/new', isQuickAction: true },
+      { label: 'Open', href: '/maintenance?status=open' },
+      { label: 'In Progress', href: '/maintenance?status=in_progress' },
+      { label: 'Pending Parts', href: '/maintenance?status=pending_parts' },
+      { label: 'Completed', href: '/maintenance?status=completed' },
     ],
   },
   {
-    label: 'Reports & Analytics',
-    href: '/landlord/reports',
-    icon: '\u2630', // Chart bars
-  },
-  {
-    label: 'Activity Log',
-    href: '/landlord/activity',
-    icon: '\u2022', // Bullet
-  },
-  {
-    label: 'Screening',
-    href: '/landlord/screening',
-    icon: '\u2714', // Checkmark
+    label: 'By Priority',
+    icon: '\u26A0', // Warning
+    children: [
+      { label: 'Emergency', href: '/maintenance?priority=emergency' },
+      { label: 'High', href: '/maintenance?priority=high' },
+      { label: 'Medium', href: '/maintenance?priority=medium' },
+      { label: 'Low', href: '/maintenance?priority=low' },
+    ],
   },
   {
     label: 'Settings',
-    href: '/landlord/settings',
+    href: '/maintenance/settings',
     icon: '\u2699', // Gear
   },
 ];
 
-interface LandlordSidebarProps {
+interface MaintenanceSidebarProps {
   pathname: string;
+  searchParams?: string;
 }
 
-const STORAGE_KEY = 'landlord-sidebar-collapsed';
+const STORAGE_KEY = 'maintenance-sidebar-collapsed';
 
-export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
+export default function MaintenanceSidebar({ pathname, searchParams }: MaintenanceSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
   const { isOpen: isMobileOpen, close: closeMobile } = useMobileMenu();
 
-  // Load collapsed state from localStorage on mount
+  const fullPath = searchParams ? `${pathname}?${searchParams}` : pathname;
+
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -96,18 +76,17 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
       setIsCollapsed(stored === 'true');
     }
 
-    // Auto-expand parent menu if current path is in a submenu
     navItems.forEach(item => {
       if (item.children) {
         const isChildActive = item.children.some(child =>
-          pathname === child.href || pathname.startsWith(child.href + '/')
+          fullPath === child.href || fullPath.startsWith(child.href + '&')
         );
         if (isChildActive) {
           setExpandedMenus(prev => new Set(prev).add(item.label));
         }
       }
     });
-  }, [pathname]);
+  }, [fullPath]);
 
   const toggleCollapsed = () => {
     const newValue = !isCollapsed;
@@ -128,8 +107,12 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
   };
 
   const isActive = (href: string) => {
-    if (href === '/landlord') {
-      return pathname === '/landlord';
+    if (href === '/maintenance') {
+      return pathname === '/maintenance' && !searchParams;
+    }
+    // For query-based navigation
+    if (href.includes('?')) {
+      return fullPath === href || fullPath.startsWith(href + '&');
     }
     return pathname === href || pathname.startsWith(href + '/');
   };
@@ -144,7 +127,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
     return false;
   };
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return null;
   }
@@ -184,7 +166,7 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
       >
         {!isCollapsed && (
           <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--secondary)' }}>
-            Menu
+            Maintenance
           </span>
         )}
         <button
@@ -220,7 +202,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
           {navItems.map((item) => (
             <li key={item.label}>
               {item.children ? (
-                // Parent with children
                 <>
                   <button
                     onClick={() => toggleMenu(item.label)}
@@ -274,7 +255,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
                       </>
                     )}
                   </button>
-                  {/* Submenu */}
                   {!isCollapsed && (
                     <ul
                       style={{
@@ -318,20 +298,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
                             <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {child.label}
                             </span>
-                            {child.isQuickAction && (
-                              <span
-                                style={{
-                                  fontSize: '0.625rem',
-                                  padding: '0.125rem 0.375rem',
-                                  backgroundColor: 'var(--accent)',
-                                  color: 'var(--accent-foreground)',
-                                  borderRadius: '4px',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                +
-                              </span>
-                            )}
                           </Link>
                         </li>
                       ))}
@@ -339,7 +305,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
                   )}
                 </>
               ) : (
-                // Single link item
                 <Link
                   href={item.href!}
                   onClick={handleNavClick}

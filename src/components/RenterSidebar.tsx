@@ -14,81 +14,61 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     label: 'Dashboard',
-    href: '/landlord',
+    href: '/renter',
     icon: '\u2302', // House
   },
   {
-    label: 'Properties',
-    icon: '\u2616', // Building
-    children: [
-      { label: 'View All Properties', href: '/landlord/properties' },
-      { label: 'Add Property', href: '/landlord/properties/new', isQuickAction: true },
-    ],
-  },
-  {
-    label: 'Listings',
+    label: 'Browse Listings',
+    href: '/renter/browse',
     icon: '\u2606', // Star
-    children: [
-      { label: 'View Listings', href: '/landlord/listings' },
-      { label: 'Create Listing', href: '/landlord/listings/new', isQuickAction: true },
-    ],
   },
   {
-    label: 'Applications',
-    href: '/landlord/applications',
+    label: 'My Applications',
+    href: '/renter/applications',
     icon: '\u2709', // Envelope
   },
   {
-    label: 'Leases',
+    label: 'My Lease',
+    href: '/renter/lease',
     icon: '\u270D', // Writing hand
-    children: [
-      { label: 'View Leases', href: '/landlord/leases' },
-      { label: 'Create Lease', href: '/landlord/leases/new', isQuickAction: true },
-    ],
+  },
+  {
+    label: 'Payments',
+    href: '/renter/payments',
+    icon: '\u00A4', // Currency
   },
   {
     label: 'Maintenance',
     icon: '\u2692', // Hammer and wrench
     children: [
-      { label: 'View Requests', href: '/landlord/maintenance' },
-      { label: 'Create Ticket', href: '/landlord/maintenance/new', isQuickAction: true },
+      { label: 'My Requests', href: '/renter/maintenance' },
+      { label: 'New Request', href: '/renter/maintenance/new', isQuickAction: true },
     ],
   },
   {
-    label: 'Reports & Analytics',
-    href: '/landlord/reports',
-    icon: '\u2630', // Chart bars
-  },
-  {
-    label: 'Activity Log',
-    href: '/landlord/activity',
-    icon: '\u2022', // Bullet
-  },
-  {
-    label: 'Screening',
-    href: '/landlord/screening',
-    icon: '\u2714', // Checkmark
+    label: 'Documents',
+    href: '/renter/documents',
+    icon: '\u2630', // Document
   },
   {
     label: 'Settings',
-    href: '/landlord/settings',
+    href: '/renter/settings',
     icon: '\u2699', // Gear
   },
 ];
 
-interface LandlordSidebarProps {
+interface RenterSidebarProps {
   pathname: string;
 }
 
-const STORAGE_KEY = 'landlord-sidebar-collapsed';
+const STORAGE_KEY = 'renter-sidebar-collapsed';
 
-export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
+export default function RenterSidebar({ pathname }: RenterSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
   const { isOpen: isMobileOpen, close: closeMobile } = useMobileMenu();
 
-  // Load collapsed state from localStorage on mount
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -96,7 +76,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
       setIsCollapsed(stored === 'true');
     }
 
-    // Auto-expand parent menu if current path is in a submenu
     navItems.forEach(item => {
       if (item.children) {
         const isChildActive = item.children.some(child =>
@@ -128,8 +107,8 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
   };
 
   const isActive = (href: string) => {
-    if (href === '/landlord') {
-      return pathname === '/landlord';
+    if (href === '/renter') {
+      return pathname === '/renter';
     }
     return pathname === href || pathname.startsWith(href + '/');
   };
@@ -144,7 +123,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
     return false;
   };
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return null;
   }
@@ -184,7 +162,7 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
       >
         {!isCollapsed && (
           <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--secondary)' }}>
-            Menu
+            Renter Portal
           </span>
         )}
         <button
@@ -220,7 +198,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
           {navItems.map((item) => (
             <li key={item.label}>
               {item.children ? (
-                // Parent with children
                 <>
                   <button
                     onClick={() => toggleMenu(item.label)}
@@ -274,7 +251,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
                       </>
                     )}
                   </button>
-                  {/* Submenu */}
                   {!isCollapsed && (
                     <ul
                       style={{
@@ -339,7 +315,6 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
                   )}
                 </>
               ) : (
-                // Single link item
                 <Link
                   href={item.href!}
                   onClick={handleNavClick}
