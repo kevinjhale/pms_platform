@@ -91,38 +91,53 @@ The platform now has:
 
 ## What Needs To Be Done Next
 
+### Recommended Next Tasks (In Order)
+
+1. **Photo gallery for maintenance tickets** ⭐ Quick Win
+   - Display uploaded photos on ticket detail page
+   - Add lightbox/modal photo viewer
+   - Complexity: Low | Value: High (improves UX, photos already stored)
+
+2. **Document storage with S3/R2**
+   - Integrate with AWS S3 or Cloudflare R2 for file storage
+   - Generate and store lease PDFs
+   - Enable document uploads on the documents page
+   - Complexity: Medium | Value: High (completes documents feature)
+
+3. **Advanced reporting with charts**
+   - Revenue charts over time (monthly/yearly)
+   - Occupancy rate trends
+   - Maintenance response time metrics
+   - Consider using Chart.js or Recharts
+   - Complexity: Medium | Value: High (key feature for landlords/PMs)
+
 ### High Priority
-1. **Document storage** - Currently documents page is placeholder:
-   - Integrate with S3/R2 for file storage
-   - Generate/store lease PDFs
-   - Store signed documents
 
-2. **Photo display on maintenance tickets** - Photos are stored but not displayed:
-   - Add photo gallery to maintenance detail page
-   - Add photo viewer modal
-
-### Medium Priority
-3. **Stripe webhook testing** - Need to verify in staging:
-   - Test with Stripe CLI locally
+4. **Stripe webhook testing**
+   - Test payment flow with Stripe CLI locally
    - Configure production webhook endpoint
    - Handle payment failures gracefully
+   - Add retry logic for failed webhooks
+   - Complexity: Low | Value: Medium
 
-4. **Advanced reporting** - Charts and analytics:
-   - Revenue charts over time
-   - Occupancy trends
-   - Maintenance response time metrics
-
-5. **Lease renewal workflow**:
-   - Auto-generate renewal offers
-   - Digital signature integration
+5. **Lease renewal workflow**
+   - Auto-generate renewal offers before lease expiry
+   - Digital signature integration (DocuSign or similar)
    - Renewal reminder notifications
+   - Complexity: High | Value: High
 
-### Lower Priority
+### Medium Priority
+
 6. **Push notifications** - Browser notifications for urgent items
 7. **Multi-language support** - i18n for interface
-8. **Admin panel** - Super-admin for platform management
-9. **PWA support** - Progressive web app features
-10. **Stripe Connect** - Payment splitting between PM/landlord
+8. **Tenant screening integration** - Background check API integration
+
+### Lower Priority
+
+9. **Admin panel** - Super-admin for platform management
+10. **PWA support** - Progressive web app features
+11. **Stripe Connect** - Payment splitting between PM/landlord
+12. **Listing syndication** - Push to Zillow, Apartments.com
 
 ---
 
