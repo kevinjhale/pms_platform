@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { constructWebhookEvent } from '@/services/stripe';
+import { constructWebhookEvent, getStripeWebhookSecret } from '@/services/stripe';
 import { getDb } from '@/db';
 
 const db = getDb();
-import { rentPayments } from '@/db/schema';
+import { rentPayments, leases, units, properties } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { now } from '@/lib/utils';
 import type Stripe from 'stripe';
@@ -14,45 +14,59 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
-      return NextResponse.json(
-        { error: 'Missing signature' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
     }
 
-    const event = await constructWebhookEvent(body, signature);
+    // First, try to parse the body to get organizationId from metadata
+    // This is safe because we'll verify the signature next
+    let organizationId: string | undefined;
+    try {
+      const parsed = JSON.parse(body);
+      organizationId = parsed?.data?.object?.metadata?.organizationId;
+    } catch {
+      // Ignore parsing errors
+    }
+
+    // Construct and verify the webhook event
+    // Uses org-specific secret if organizationId provided, otherwise env default
+    const event = await constructWebhookEvent(body, signature, organizationId);
 
     if (!event) {
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 400 }
-      );
+      // If org-specific verification failed, try with global secret
+      if (organizationId) {
+        const globalEvent = await constructWebhookEvent(body, signature);
+        if (!globalEvent) {
+          return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+        }
+        // Use the global event
+        return handleEvent(globalEvent);
+      }
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // Handle the event
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutCompleted(session);
-        break;
-      }
-      case 'payment_intent.succeeded': {
-        // Additional handling if needed
-        console.log('[Stripe] Payment intent succeeded');
-        break;
-      }
-      default:
-        console.log(`[Stripe] Unhandled event type: ${event.type}`);
-    }
-
-    return NextResponse.json({ received: true });
+    return handleEvent(event);
   } catch (error) {
     console.error('[Stripe] Webhook error:', error);
-    return NextResponse.json(
-      { error: 'Webhook handler failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
+}
+
+async function handleEvent(event: Stripe.Event) {
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      await handleCheckoutCompleted(session);
+      break;
+    }
+    case 'payment_intent.succeeded': {
+      console.log('[Stripe] Payment intent succeeded');
+      break;
+    }
+    default:
+      console.log(`[Stripe] Unhandled event type: ${event.type}`);
+  }
+
+  return NextResponse.json({ received: true });
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -94,5 +108,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     })
     .where(eq(rentPayments.id, paymentId));
 
-  console.log(`[Stripe] Payment ${paymentId} updated - status: ${isFullyPaid ? 'paid' : 'partial'}`);
+  console.log(
+    `[Stripe] Payment ${paymentId} updated - status: ${isFullyPaid ? 'paid' : 'partial'}`
+  );
 }

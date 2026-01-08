@@ -73,7 +73,67 @@ bun run dev
 
 # Terminal 2: Start the background scheduler (optional - for automated emails)
 npm run scheduler
+
+# Terminal 3: Start Stripe webhook listener (optional - for payment processing)
+stripe listen --forward-to localhost:3000/api/payments/webhook
 ```
+
+### Stripe Setup (Payment Processing)
+
+Stripe enables online rent payments. See [docs/STRIPE_SETUP.md](docs/STRIPE_SETUP.md) for full details.
+
+#### Local Development
+
+1. **Install the Stripe CLI**:
+   ```bash
+   # Windows (via winget)
+   winget install Stripe.StripeCLI
+
+   # Windows (via scoop)
+   scoop install stripe
+
+   # macOS
+   brew install stripe/stripe-cli/stripe
+
+   # Linux (Debian/Ubuntu)
+   curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg
+   echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee /etc/apt/sources.list.d/stripe.list
+   sudo apt update && sudo apt install stripe
+   ```
+
+2. **Login to Stripe**:
+   ```bash
+   stripe login
+   ```
+
+3. **Start the webhook listener**:
+   ```bash
+   stripe listen --forward-to localhost:3000/api/payments/webhook
+   ```
+   Copy the `whsec_...` secret displayed and add it to your `.env`:
+   ```env
+   STRIPE_WEBHOOK_SECRET="whsec_xxxxxxxxxxxxxxxxxxxx"
+   ```
+
+4. **Keep the CLI running** while testing payments
+
+#### Production Setup
+
+1. Go to [Stripe Dashboard → Developers → Webhooks](https://dashboard.stripe.com/webhooks)
+2. Click **Add endpoint**
+3. Enter your webhook URL: `https://your-domain.com/api/payments/webhook`
+4. Select event: `checkout.session.completed`
+5. Click **Add endpoint**
+6. Copy the **Signing secret** (`whsec_...`) to your production `.env`
+
+#### Test Cards
+
+| Card Number | Result |
+|-------------|--------|
+| `4242 4242 4242 4242` | Success |
+| `4000 0000 0000 9995` | Declined |
+
+Use any future expiration date and any 3-digit CVC.
 
 ### Production Build
 

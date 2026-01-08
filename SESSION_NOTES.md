@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-06
+**Last Updated**: 2026-01-07
 
 ## Project Overview
 
@@ -13,131 +13,143 @@ The platform now has:
 - Mobile responsiveness with FAB hamburger menu
 - Email notification infrastructure with event triggers
 - File upload capability for maintenance tickets
-- Stripe payment integration
+- Stripe payment integration with per-organization settings
 - Background job scheduler for automated notifications
+- **NEW: Per-organization integration settings UI**
+- **NEW: Encrypted credential storage (AES-256-GCM)**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
 
 ---
 
-## What Was Done This Session
+## What Was Done This Session (2026-01-07)
 
-### 1. Email Notifications Wired to Events
-- **Organization invites**: Email sent when invite is created (`src/services/invites.ts`)
-- **Application submitted**: Email sent to property managers when renter submits application
-- **Application status**: Email sent to applicant when approved/rejected
-- **Maintenance created**: Email sent to org staff when ticket is created
-- **Maintenance status**: Email sent to requester when status changes
+### 1. Per-Organization Integration Settings System
 
-### 2. Background Job Scheduler
-- Installed `node-cron` for job scheduling
-- Created `src/services/scheduler.ts` with automated jobs:
-  - Payment status updates (`upcoming` → `due` → `late`)
-  - Rent reminders 3 days before due date
-  - Rent reminders on due date
-  - Late payment notifications
-  - Lease expiry reminders (30, 14, 7 days before)
-- Created `scripts/scheduler.ts` CLI runner
-- Added npm scripts: `scheduler`, `scheduler:once`
-- Scheduler runs daily at 8:00 AM (configurable timezone)
+Built a comprehensive UI for organization owners/admins to manage third-party service credentials:
+
+**New Files Created:**
+| File | Purpose |
+|------|---------|
+| `src/lib/crypto.ts` | AES-256-GCM encryption using AUTH_SECRET |
+| `src/lib/integrations/types.ts` | TypeScript interfaces for all integrations |
+| `src/db/schema/integrationSettings.ts` | Database schema for encrypted settings |
+| `src/services/integrationSettings.ts` | CRUD operations with encryption/decryption |
+| `src/app/actions/integrations.ts` | Server actions for saving/testing settings |
+| `src/app/landlord/settings/integrations/page.tsx` | Main integrations page |
+| `src/app/landlord/settings/integrations/StripeSettingsForm.tsx` | Stripe config form |
+| `src/app/landlord/settings/integrations/SmtpSettingsForm.tsx` | SMTP config form |
+| `src/app/landlord/settings/integrations/OAuthSettingsForm.tsx` | OAuth config form |
+
+**Features:**
+- Per-organization configuration for Stripe, SMTP, OAuth (Google/GitHub)
+- Encrypted storage for API keys and secrets (AES-256-GCM)
+- Fallback to environment variables if org has no custom settings
+- Test connection buttons to verify credentials before saving
+- Import from system defaults (copy .env values to org settings)
+- Status badges showing "Custom", "System Default", or "Not Configured"
+- Access control: only owners/admins can view/manage settings
+
+**Modified Services:**
+- `src/services/stripe.ts` - Added `getStripeForOrg()` with caching and fallback
+- `src/services/email.ts` - Added org-aware transporter with caching and fallback
+- `src/app/api/payments/checkout/route.ts` - Uses org-specific Stripe settings
+- `src/app/api/payments/webhook/route.ts` - Handles org-specific webhook secrets
+
+### 2. Stripe CLI Setup and Testing
+
+- Installed Stripe CLI via winget
+- Configured webhook listener for local development
+- Added webhook secret to `.env`
+- Tested webhook integration successfully (all events returned 200 OK)
+- Updated README with Stripe setup instructions for local and production
 
 ### 3. Documentation Updates
-- Comprehensive README update with:
-  - Full feature list
-  - All available commands
-  - Running the full stack instructions
-  - Updated roadmap
-- Created configuration guides:
-  - `docs/SMTP_SETUP.md` - Gmail, SendGrid, SES, Mailgun, Postmark
-  - `docs/STRIPE_SETUP.md` - API keys, webhooks, testing
-  - `docs/PRODUCTION_SETUP.md` - Docker, PM2, Vercel, backups, security
+
+- Added comprehensive Stripe setup instructions to README.md
+- Includes local development (CLI) and production setup steps
+- Test card numbers for development testing
 
 ---
 
 ## Previous Session Work
 
-### Renter Dashboard Sidebar Navigation
-- Created `RenterSidebar.tsx` - collapsible sidebar matching landlord design
-- Navigation: Dashboard, Browse, Applications, Lease, Payments, Maintenance, Documents, Settings
+### Email Notifications Wired to Events
+- Organization invites, application submitted/status, maintenance created/status
 
-### Maintenance Worker Dashboard Sidebar Navigation
-- Created `MaintenanceSidebar.tsx` - collapsible sidebar with query-param filtering
-- Navigation: Dashboard, My Tickets, All Tickets, By Status, By Priority, Settings
+### Background Job Scheduler
+- Payment status updates, rent reminders, late payment notifications, lease expiry reminders
+- Runs daily at 8:00 AM (configurable)
+
+### Renter/Maintenance Dashboard Sidebar Navigation
+- Collapsible sidebars matching landlord design
 
 ### Mobile Responsiveness
-- Created `MobileMenuProvider.tsx` - context for mobile menu state
-- FAB hamburger menu in bottom-right
-- Overlay and escape key handler
-- CSS media queries for screens under 768px
-
-### Email Notifications System
-- Created `src/services/email.ts` with Nodemailer integration
-- 7 email templates for various notifications
-- Graceful fallback when SMTP not configured
+- FAB hamburger menu, overlay, escape key handler
 
 ### File Uploads for Maintenance Tickets
-- Created upload API endpoint and FileUpload component
 - Drag-and-drop, preview thumbnails, 5MB limit
 
 ### Stripe Payment Integration
-- Stripe SDK wrapper, checkout sessions, webhooks
-- PayButton component for rent payments
-
-### Integration Tests
-- Vitest configuration with 25 passing tests
-- Tests for FileUpload, PayButton, MobileMenuProvider, email service
+- Checkout sessions, webhooks, PayButton component
 
 ---
 
 ## What Needs To Be Done Next
 
-### Recommended Next Tasks (In Order)
+### High Priority
 
 1. **Photo gallery for maintenance tickets** ⭐ Quick Win
    - Display uploaded photos on ticket detail page
    - Add lightbox/modal photo viewer
-   - Complexity: Low | Value: High (improves UX, photos already stored)
+   - Complexity: Low | Value: High
 
 2. **Document storage with S3/R2**
-   - Integrate with AWS S3 or Cloudflare R2 for file storage
+   - Integrate with AWS S3 or Cloudflare R2
    - Generate and store lease PDFs
-   - Enable document uploads on the documents page
-   - Complexity: Medium | Value: High (completes documents feature)
+   - Enable document uploads
+   - Complexity: Medium | Value: High
 
 3. **Advanced reporting with charts**
-   - Revenue charts over time (monthly/yearly)
+   - Revenue charts over time
    - Occupancy rate trends
    - Maintenance response time metrics
-   - Consider using Chart.js or Recharts
-   - Complexity: Medium | Value: High (key feature for landlords/PMs)
-
-### High Priority
-
-4. **Stripe webhook testing**
-   - Test payment flow with Stripe CLI locally
-   - Configure production webhook endpoint
-   - Handle payment failures gracefully
-   - Add retry logic for failed webhooks
-   - Complexity: Low | Value: Medium
-
-5. **Lease renewal workflow**
-   - Auto-generate renewal offers before lease expiry
-   - Digital signature integration (DocuSign or similar)
-   - Renewal reminder notifications
-   - Complexity: High | Value: High
+   - Complexity: Medium | Value: High
 
 ### Medium Priority
 
+4. **OAuth dynamic providers**
+   - Make per-org OAuth settings actually work for authentication
+   - Requires NextAuth.js customization for dynamic providers
+   - Complexity: High | Value: Medium
+
+5. **Lease renewal workflow**
+   - Auto-generate renewal offers
+   - Digital signature integration
+   - Renewal reminder notifications
+   - Complexity: High | Value: High
+
 6. **Push notifications** - Browser notifications for urgent items
-7. **Multi-language support** - i18n for interface
-8. **Tenant screening integration** - Background check API integration
 
 ### Lower Priority
 
-9. **Admin panel** - Super-admin for platform management
-10. **PWA support** - Progressive web app features
-11. **Stripe Connect** - Payment splitting between PM/landlord
-12. **Listing syndication** - Push to Zillow, Apartments.com
+7. **Admin panel** - Super-admin for platform management
+8. **PWA support** - Progressive web app features
+9. **Stripe Connect** - Payment splitting between PM/landlord
+10. **Listing syndication** - Push to Zillow, Apartments.com
+
+---
+
+## Accessing Integration Settings
+
+Navigate to: **Settings → Integrations** (visible only to org owners/admins)
+
+URL: `/landlord/settings/integrations`
+
+From there you can configure:
+- **Stripe Payments**: Secret key, publishable key, webhook secret
+- **Email (SMTP)**: Host, port, credentials, from address, app name
+- **OAuth Providers**: Google and GitHub client ID/secret
 
 ---
 
@@ -176,6 +188,9 @@ bun run db:studio    # Open Drizzle Studio
 # Background Jobs
 npm run scheduler       # Start scheduler daemon
 npm run scheduler:once  # Run all jobs once
+
+# Stripe (local development)
+stripe listen --forward-to localhost:3000/api/payments/webhook
 ```
 
 ## Environment Variables
@@ -183,27 +198,28 @@ npm run scheduler:once  # Run all jobs once
 ```env
 # Required
 DATABASE_URL="file:./data/pms.db"
-AUTH_SECRET="your-secret"
+AUTH_SECRET="your-secret-at-least-32-chars"
 NEXTAUTH_URL="http://localhost:3000"
 
-# Email (optional - needed for notifications)
+# Email (optional - can configure via UI instead)
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
 SMTP_USER=""
 SMTP_PASS=""
 EMAIL_FROM="noreply@your-domain.com"
 
-# Stripe (optional - needed for payments)
+# Stripe (optional - can configure via UI instead)
 STRIPE_SECRET_KEY=""
 STRIPE_PUBLISHABLE_KEY=""
 STRIPE_WEBHOOK_SECRET=""
+
+# OAuth (optional - can configure via UI instead)
+AUTH_GOOGLE_ID=""
+AUTH_GOOGLE_SECRET=""
+AUTH_GITHUB_ID=""
+AUTH_GITHUB_SECRET=""
 ```
 
 ## Git Status
 
 All changes committed and pushed to `main` branch.
-
-**Latest commits:**
-- `1c49aef` - feat: add background job scheduler for automated notifications
-- `b0dea01` - feat: wire up email notifications to events
-- `fdc3f71` - docs: update session notes with completed work and next steps

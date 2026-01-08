@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getOrgContext } from "@/lib/org-context";
 import { getUserById } from "@/services/users";
@@ -150,6 +151,34 @@ export default async function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* Integrations Section - Only for owners/admins */}
+      {canInvite && (
+        <section style={{ marginBottom: "2.5rem" }}>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem" }}>
+            Integrations
+          </h2>
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "0.25rem" }}>
+                  Third-Party Services
+                </h3>
+                <p style={{ color: "var(--secondary)", fontSize: "0.875rem" }}>
+                  Configure Stripe payments, email (SMTP), and OAuth providers for your organization
+                </p>
+              </div>
+              <Link
+                href="/landlord/settings/integrations"
+                className="btn btn-primary"
+                style={{ textDecoration: "none" }}
+              >
+                Manage Integrations
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Team Management Section */}
       <section style={{ marginBottom: "2.5rem" }}>

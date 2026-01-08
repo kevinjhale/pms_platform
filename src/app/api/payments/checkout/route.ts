@@ -1,25 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { createCheckoutSession, isStripeConfigured } from '@/services/stripe';
+import { createCheckoutSession, isStripeConfiguredForOrg } from '@/services/stripe';
 import { getDb } from '@/db';
 
 const db = getDb();
 import { rentPayments, leases, units, properties } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { centsToDollars } from '@/lib/utils';
+import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!isStripeConfigured()) {
-      return NextResponse.json(
-        { error: 'Payments not configured' },
-        { status: 503 }
-      );
     }
 
     const { paymentId } = await request.json();
@@ -31,11 +23,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get payment details with property info
+    // Get payment details with property info and organization
     const paymentResult = await db
       .select({
         payment: rentPayments,
         propertyName: properties.name,
+        organizationId: properties.organizationId,
         tenantId: leases.tenantId,
       })
       .from(rentPayments)
@@ -49,7 +42,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
-    const { payment, propertyName, tenantId } = paymentResult[0];
+    const { payment, propertyName, organizationId, tenantId } = paymentResult[0];
+
+    // Check if Stripe is configured for this organization
+    if (!(await isStripeConfiguredForOrg(organizationId))) {
+      return NextResponse.json(
+        { error: 'Payments not configured' },
+        { status: 503 }
+      );
+    }
 
     // Verify the user is the tenant
     if (tenantId !== session.user.id) {
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
       periodLabel,
       successUrl: `${baseUrl}/renter/payments?success=true&payment=${payment.id}`,
       cancelUrl: `${baseUrl}/renter/payments?cancelled=true`,
+      organizationId,
     });
 
     if (!checkoutUrl) {

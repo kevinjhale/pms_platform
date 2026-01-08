@@ -1,7 +1,12 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
+import { getSmtpSettingsWithFallback, hasIntegrationSettings } from './integrationSettings';
+import type { SmtpSettings } from '@/lib/integrations/types';
 
-// Email configuration - uses environment variables
-const transporter = nodemailer.createTransport({
+// Cache for transporters per organization
+const transporterCache = new Map<string, Transporter>();
+
+// Global transporter for backward compatibility (uses env vars)
+const globalTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: process.env.SMTP_SECURE === 'true',
@@ -15,23 +20,109 @@ const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@pms-platform.local';
 const APP_NAME = process.env.APP_NAME || 'PMS Platform';
 const APP_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
+/**
+ * Get transporter for a specific organization
+ * Falls back to global transporter if org has no custom settings
+ */
+async function getTransporterForOrg(orgId: string): Promise<Transporter | null> {
+  if (transporterCache.has(orgId)) {
+    return transporterCache.get(orgId)!;
+  }
+
+  const settings = await getSmtpSettingsWithFallback(orgId);
+
+  if (!settings.user || !settings.pass) {
+    return null;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: settings.host || 'smtp.gmail.com',
+    port: settings.port || 587,
+    secure: settings.secure || false,
+    auth: {
+      user: settings.user,
+      pass: settings.pass,
+    },
+  });
+
+  transporterCache.set(orgId, transporter);
+  return transporter;
+}
+
+/**
+ * Get email settings (from address, app name) for an organization
+ */
+async function getEmailSettings(orgId?: string): Promise<{ fromEmail: string; appName: string }> {
+  if (!orgId) {
+    return { fromEmail: FROM_EMAIL, appName: APP_NAME };
+  }
+
+  const settings = await getSmtpSettingsWithFallback(orgId);
+  return {
+    fromEmail: settings.fromAddress || FROM_EMAIL,
+    appName: settings.appName || APP_NAME,
+  };
+}
+
+/**
+ * Check if SMTP is configured for an organization
+ */
+export async function isSmtpConfiguredForOrg(orgId: string): Promise<boolean> {
+  const transporter = await getTransporterForOrg(orgId);
+  return !!transporter;
+}
+
+/**
+ * Check if organization has custom SMTP settings
+ */
+export async function hasCustomSmtpSettings(orgId: string): Promise<boolean> {
+  return hasIntegrationSettings(orgId, 'smtp');
+}
+
+/**
+ * Clear cached transporter for an organization (call when settings change)
+ */
+export function clearEmailCache(orgId: string): void {
+  transporterCache.delete(orgId);
+}
+
+/**
+ * Clear all cached transporters
+ */
+export function clearAllEmailCache(): void {
+  transporterCache.clear();
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  organizationId?: string; // Optional for backward compatibility
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  const transporter = options.organizationId
+    ? await getTransporterForOrg(options.organizationId)
+    : globalTransporter;
+
   // Skip sending if SMTP is not configured
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!transporter) {
     console.log('[Email] SMTP not configured, skipping email:', options.subject);
     return false;
   }
 
+  // Check global config if not using org-specific
+  if (!options.organizationId && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
+    console.log('[Email] SMTP not configured, skipping email:', options.subject);
+    return false;
+  }
+
+  const { fromEmail, appName } = await getEmailSettings(options.organizationId);
+
   try {
     await transporter.sendMail({
-      from: `"${APP_NAME}" <${FROM_EMAIL}>`,
+      from: `"${appName}" <${fromEmail}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -50,7 +141,7 @@ function stripHtml(html: string): string {
 }
 
 // Email wrapper for consistent styling
-function emailWrapper(content: string): string {
+function emailWrapper(content: string, appName: string = APP_NAME): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -66,7 +157,7 @@ function emailWrapper(content: string): string {
               <!-- Header -->
               <tr>
                 <td style="padding: 32px 40px; border-bottom: 1px solid #e2e8f0;">
-                  <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #0f172a;">${APP_NAME}</h1>
+                  <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #0f172a;">${appName}</h1>
                 </td>
               </tr>
               <!-- Content -->
@@ -79,7 +170,7 @@ function emailWrapper(content: string): string {
               <tr>
                 <td style="padding: 24px 40px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
                   <p style="margin: 0; font-size: 12px; color: #64748b; text-align: center;">
-                    This email was sent by ${APP_NAME}. If you didn't expect this email, you can safely ignore it.
+                    This email was sent by ${appName}. If you didn't expect this email, you can safely ignore it.
                   </p>
                 </td>
               </tr>
@@ -92,7 +183,38 @@ function emailWrapper(content: string): string {
   `;
 }
 
+/**
+ * Test SMTP connection with provided settings
+ */
+export async function testSmtpConnection(settings: Partial<SmtpSettings>): Promise<{ valid: boolean; message: string }> {
+  if (!settings.host || !settings.user || !settings.pass) {
+    return { valid: false, message: 'Missing required SMTP settings' };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: settings.host,
+      port: settings.port || 587,
+      secure: settings.secure || false,
+      auth: {
+        user: settings.user,
+        pass: settings.pass,
+      },
+    });
+
+    await transporter.verify();
+    return { valid: true, message: 'Connection successful' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Connection failed';
+    return { valid: false, message };
+  }
+}
+
 // ============= Email Templates =============
+
+interface OrgEmailParams {
+  organizationId?: string;
+}
 
 // Organization Invite
 export async function sendInviteEmail(params: {
@@ -101,8 +223,9 @@ export async function sendInviteEmail(params: {
   organizationName: string;
   role: string;
   inviteToken: string;
-}): Promise<boolean> {
+} & OrgEmailParams): Promise<boolean> {
   const acceptUrl = `${APP_URL}/invite/accept?token=${params.inviteToken}`;
+  const { appName } = await getEmailSettings(params.organizationId);
 
   const content = `
     <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #0f172a;">You've been invited!</h2>
@@ -120,7 +243,8 @@ export async function sendInviteEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `You're invited to join ${params.organizationName}`,
-    html: emailWrapper(content),
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
   });
 }
 
@@ -131,9 +255,10 @@ export async function sendApplicationSubmittedEmail(params: {
   propertyName: string;
   unitNumber?: string;
   applicationId: string;
-}): Promise<boolean> {
+} & OrgEmailParams): Promise<boolean> {
   const reviewUrl = `${APP_URL}/landlord/applications/${params.applicationId}`;
   const unitInfo = params.unitNumber ? ` - Unit ${params.unitNumber}` : '';
+  const { appName } = await getEmailSettings(params.organizationId);
 
   const content = `
     <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #0f172a;">New Application Received</h2>
@@ -148,7 +273,8 @@ export async function sendApplicationSubmittedEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `New application for ${params.propertyName}${unitInfo}`,
-    html: emailWrapper(content),
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
   });
 }
 
@@ -159,8 +285,9 @@ export async function sendApplicationStatusEmail(params: {
   propertyName: string;
   unitNumber?: string;
   status: 'approved' | 'rejected' | 'under_review';
-}): Promise<boolean> {
+} & OrgEmailParams): Promise<boolean> {
   const unitInfo = params.unitNumber ? ` - Unit ${params.unitNumber}` : '';
+  const { appName } = await getEmailSettings(params.organizationId);
 
   const statusMessages = {
     approved: {
@@ -198,7 +325,8 @@ export async function sendApplicationStatusEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `Application Update: ${params.propertyName}${unitInfo}`,
-    html: emailWrapper(content),
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
   });
 }
 
@@ -211,9 +339,10 @@ export async function sendMaintenanceCreatedEmail(params: {
   title: string;
   priority: string;
   requestId: string;
-}): Promise<boolean> {
+} & OrgEmailParams): Promise<boolean> {
   const reviewUrl = `${APP_URL}/landlord/maintenance/${params.requestId}`;
   const unitInfo = params.unitNumber ? ` - Unit ${params.unitNumber}` : '';
+  const { appName } = await getEmailSettings(params.organizationId);
 
   const priorityColors: Record<string, string> = {
     emergency: '#dc2626',
@@ -242,7 +371,8 @@ export async function sendMaintenanceCreatedEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `[${params.priority.toUpperCase()}] Maintenance: ${params.title}`,
-    html: emailWrapper(content),
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
   });
 }
 
@@ -254,8 +384,9 @@ export async function sendMaintenanceStatusEmail(params: {
   propertyName: string;
   status: string;
   requestId: string;
-}): Promise<boolean> {
+} & OrgEmailParams): Promise<boolean> {
   const viewUrl = `${APP_URL}/renter/maintenance`;
+  const { appName } = await getEmailSettings(params.organizationId);
 
   const statusMessages: Record<string, { label: string; color: string }> = {
     acknowledged: { label: 'Acknowledged', color: '#2563eb' },
@@ -290,7 +421,8 @@ export async function sendMaintenanceStatusEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `Maintenance Update: ${params.title} - ${statusInfo.label}`,
-    html: emailWrapper(content),
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
   });
 }
 
@@ -301,8 +433,9 @@ export async function sendRentReminderEmail(params: {
   propertyName: string;
   amountDue: number;
   dueDate: string;
-}): Promise<boolean> {
+} & OrgEmailParams): Promise<boolean> {
   const payUrl = `${APP_URL}/renter/payments`;
+  const { appName } = await getEmailSettings(params.organizationId);
 
   const content = `
     <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #0f172a;">Rent Payment Reminder</h2>
@@ -325,7 +458,8 @@ export async function sendRentReminderEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `Rent Reminder: $${params.amountDue.toLocaleString()} due ${params.dueDate}`,
-    html: emailWrapper(content),
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
   });
 }
 
@@ -336,7 +470,9 @@ export async function sendLeaseExpiringEmail(params: {
   propertyName: string;
   expiryDate: string;
   daysUntilExpiry: number;
-}): Promise<boolean> {
+} & OrgEmailParams): Promise<boolean> {
+  const { appName } = await getEmailSettings(params.organizationId);
+
   const content = `
     <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #ca8a04;">Lease Expiring Soon</h2>
     <p style="margin: 0 0 16px; font-size: 16px; color: #334155; line-height: 1.6;">
@@ -356,6 +492,7 @@ export async function sendLeaseExpiringEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `Lease Expiring: ${params.daysUntilExpiry} days remaining`,
-    html: emailWrapper(content),
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
   });
 }
