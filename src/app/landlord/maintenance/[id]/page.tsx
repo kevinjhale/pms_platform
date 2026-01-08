@@ -14,6 +14,7 @@ import {
 } from "@/app/actions/maintenance";
 import { centsToDollars } from "@/lib/utils";
 import { ArchiveMaintenanceButton } from "@/components/ArchiveMaintenanceButton";
+import PhotoGallery from "@/components/PhotoGallery";
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   open: { bg: "#fee2e2", color: "#991b1b", label: "Open" },
@@ -146,6 +147,11 @@ export default async function MaintenanceDetailPage({
             </h2>
             <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{request.description}</p>
           </div>
+
+          {/* Photos */}
+          {request.photos && request.photos.length > 0 && (
+            <PhotoGallery photos={request.photos} />
+          )}
 
           {/* Comments */}
           <div className="card" style={{ padding: "1.5rem" }}>

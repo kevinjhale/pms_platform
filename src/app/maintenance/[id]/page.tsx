@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getMaintenanceRequestById, getMaintenanceComments } from '@/services/maintenance';
 import { updateStatusAction, addCommentAction, completeTicketAction } from './actions';
+import PhotoGallery from '@/components/PhotoGallery';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   open: { bg: '#fef3c7', text: '#92400e' },
@@ -101,6 +102,11 @@ export default async function MaintenanceTicketPage({
             <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem' }}>Description</h3>
             <p style={{ whiteSpace: 'pre-wrap' }}>{request.description}</p>
           </div>
+
+          {/* Photos */}
+          {request.photos && request.photos.length > 0 && (
+            <PhotoGallery photos={request.photos} />
+          )}
 
           {/* Resolution (if completed) */}
           {request.status === 'completed' && request.resolutionSummary && (
