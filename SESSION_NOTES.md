@@ -17,7 +17,8 @@ The platform now has:
 - Background job scheduler for automated notifications
 - Per-organization integration settings UI
 - Encrypted credential storage (AES-256-GCM)
-- **NEW: Photo gallery with lightbox viewer for maintenance tickets**
+- Photo gallery with lightbox viewer for maintenance tickets
+- **NEW: Property cards with visible borders and unit counts**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
 
@@ -49,6 +50,22 @@ Added photo gallery display with lightbox viewer for maintenance ticket detail p
 | `src/app/maintenance/[id]/page.tsx` | Added PhotoGallery after description |
 
 The gallery appears on both landlord/manager and maintenance worker ticket detail views.
+
+### Property Cards Improvements
+
+Enhanced the landlord properties page with better visibility and information:
+
+**Changes:**
+- Fixed property card borders (was using undefined `--border-color`, now uses `--border`)
+- Fixed other undefined CSS variables (`--text-secondary` → `--secondary`, `--bg-secondary` → `--surface`)
+- Added unit count to each property card with blue badge (e.g., "3 units")
+- Used consistent `btn btn-primary` class for Add Property button
+
+**Modified Files:**
+| File | Changes |
+|------|---------|
+| `src/app/landlord/properties/page.tsx` | Fixed CSS variables, added unit count display |
+| `src/services/properties.ts` | Added `PropertyWithUnitCount` type, modified query to include unit count via subquery |
 
 ---
 
