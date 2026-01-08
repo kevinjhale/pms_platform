@@ -1,4 +1,4 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, count, sql } from 'drizzle-orm';
 import { getDb, properties, units, propertyManagers, unitPhotos, type Property, type Unit, type NewProperty, type NewUnit } from '@/db';
 import { generateId, now } from '@/lib/utils';
 
@@ -47,13 +47,34 @@ export async function getPropertyById(id: string): Promise<Property | undefined>
   return result[0];
 }
 
-export async function getPropertiesByOrganization(organizationId: string): Promise<Property[]> {
+export type PropertyWithUnitCount = Property & { unitCount: number };
+
+export async function getPropertiesByOrganization(organizationId: string): Promise<PropertyWithUnitCount[]> {
   const db = getDb();
-  return db
-    .select()
+
+  const unitCountSubquery = db
+    .select({
+      propertyId: units.propertyId,
+      count: count().as('count'),
+    })
+    .from(units)
+    .groupBy(units.propertyId)
+    .as('unit_counts');
+
+  const result = await db
+    .select({
+      property: properties,
+      unitCount: sql<number>`COALESCE(${unitCountSubquery.count}, 0)`.as('unitCount'),
+    })
     .from(properties)
+    .leftJoin(unitCountSubquery, eq(properties.id, unitCountSubquery.propertyId))
     .where(eq(properties.organizationId, organizationId))
     .orderBy(desc(properties.createdAt));
+
+  return result.map(r => ({
+    ...r.property,
+    unitCount: Number(r.unitCount) || 0,
+  }));
 }
 
 export async function getPropertiesByLandlord(landlordId: string): Promise<Property[]> {

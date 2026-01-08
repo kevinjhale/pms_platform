@@ -90,15 +90,25 @@ export default async function PropertiesPage() {
               </p>
               <div style={{
                 display: 'flex',
-                gap: '1rem',
+                gap: '0.5rem',
                 fontSize: '0.875rem',
+                flexWrap: 'wrap',
               }}>
                 <span style={{
                   padding: '0.25rem 0.75rem',
-                  backgroundColor: 'var(--surface)',
+                  backgroundColor: 'var(--border)',
                   borderRadius: '999px',
                 }}>
                   {property.propertyType.replace('_', ' ')}
+                </span>
+                <span style={{
+                  padding: '0.25rem 0.75rem',
+                  backgroundColor: '#dbeafe',
+                  color: '#1d4ed8',
+                  borderRadius: '999px',
+                  fontWeight: 500,
+                }}>
+                  {property.unitCount} {property.unitCount === 1 ? 'unit' : 'units'}
                 </span>
               </div>
             </Link>
