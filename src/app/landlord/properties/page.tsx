@@ -27,22 +27,15 @@ export default async function PropertiesPage() {
       }}>
         <div>
           <h1 style={{ marginBottom: '0.25rem' }}>Properties</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>
+          <p style={{ color: 'var(--secondary)' }}>
             Manage your rental properties and units
           </p>
         </div>
         <Link
           href="/landlord/properties/new"
-          style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: 'var(--accent-color)',
-            color: 'white',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: 500,
-          }}
+          className="btn btn-primary"
         >
-          Add Property
+          + Add Property
         </Link>
       </div>
 
@@ -50,25 +43,19 @@ export default async function PropertiesPage() {
         <div style={{
           textAlign: 'center',
           padding: '4rem 2rem',
-          backgroundColor: 'var(--bg-secondary)',
+          backgroundColor: 'var(--surface)',
           borderRadius: '12px',
+          border: '1px solid var(--border)',
         }}>
           <h2 style={{ marginBottom: '0.5rem' }}>No properties yet</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--secondary)', marginBottom: '1.5rem' }}>
             Add your first property to start managing rentals.
           </p>
           <Link
             href="/landlord/properties/new"
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: 'var(--accent-color)',
-              color: 'white',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
+            className="btn btn-primary"
           >
-            Add Your First Property
+            + Add Your First Property
           </Link>
         </div>
       ) : (
@@ -84,8 +71,8 @@ export default async function PropertiesPage() {
               style={{
                 display: 'block',
                 padding: '1.5rem',
-                backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
                 borderRadius: '12px',
                 textDecoration: 'none',
                 color: 'inherit',
@@ -94,7 +81,7 @@ export default async function PropertiesPage() {
             >
               <h3 style={{ marginBottom: '0.5rem' }}>{property.name}</h3>
               <p style={{
-                color: 'var(--text-secondary)',
+                color: 'var(--secondary)',
                 fontSize: '0.875rem',
                 marginBottom: '1rem',
               }}>
@@ -108,7 +95,7 @@ export default async function PropertiesPage() {
               }}>
                 <span style={{
                   padding: '0.25rem 0.75rem',
-                  backgroundColor: 'var(--bg-secondary)',
+                  backgroundColor: 'var(--surface)',
                   borderRadius: '999px',
                 }}>
                   {property.propertyType.replace('_', ' ')}
