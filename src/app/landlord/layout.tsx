@@ -4,6 +4,8 @@ import { getOrgContext } from '@/lib/org-context';
 import LandlordSidebarWrapper from '@/components/LandlordSidebarWrapper';
 import { MobileMenuProvider } from '@/components/MobileMenuProvider';
 
+export type OrgRole = 'owner' | 'admin' | 'manager' | 'staff';
+
 export default async function LandlordLayout({
   children,
 }: {
@@ -14,7 +16,7 @@ export default async function LandlordLayout({
     redirect('/login');
   }
 
-  const { organization } = await getOrgContext();
+  const { organization, role } = await getOrgContext();
   if (!organization) {
     redirect('/onboarding');
   }
@@ -27,7 +29,7 @@ export default async function LandlordLayout({
           minHeight: '100vh',
         }}
       >
-        <LandlordSidebarWrapper />
+        <LandlordSidebarWrapper userRole={(role as OrgRole) || 'staff'} />
         <main
           className="main-content-mobile"
           style={{

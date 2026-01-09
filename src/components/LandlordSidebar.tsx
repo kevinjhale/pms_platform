@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useMobileMenu } from './MobileMenuProvider';
+import type { OrgRole } from '@/app/landlord/layout';
 
 interface NavItem {
   label: string;
   href?: string;
   icon: string;
   children?: { label: string; href: string; isQuickAction?: boolean }[];
+  requiredRoles?: OrgRole[]; // If set, only these roles can see this item
 }
 
 const navItems: NavItem[] = [
@@ -16,6 +18,12 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     href: '/landlord',
     icon: '\u2302', // House
+  },
+  {
+    label: 'Assignments',
+    href: '/landlord/assignments',
+    icon: '\u2611', // Checkbox
+    requiredRoles: ['manager', 'staff'], // Only PMs see this
   },
   {
     label: 'Properties',
@@ -68,25 +76,35 @@ const navItems: NavItem[] = [
     label: 'Screening',
     href: '/landlord/screening',
     icon: '\u2714', // Checkmark
+    requiredRoles: ['owner', 'admin'], // Background checks are sensitive
   },
   {
     label: 'Settings',
     href: '/landlord/settings',
     icon: '\u2699', // Gear
+    requiredRoles: ['owner', 'admin'], // Only admins can change settings
   },
 ];
 
 interface LandlordSidebarProps {
   pathname: string;
+  userRole: OrgRole;
 }
 
 const STORAGE_KEY = 'landlord-sidebar-collapsed';
 
-export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
+export default function LandlordSidebar({ pathname, userRole }: LandlordSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
   const { isOpen: isMobileOpen, close: closeMobile } = useMobileMenu();
+
+  // Filter nav items based on user role
+  const filteredNavItems = useMemo(() =>
+    navItems.filter(item => {
+      if (!item.requiredRoles) return true;
+      return item.requiredRoles.includes(userRole);
+    }), [userRole]);
 
   // Load collapsed state from localStorage on mount
   useEffect(() => {
@@ -97,7 +115,7 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
     }
 
     // Auto-expand parent menu if current path is in a submenu
-    navItems.forEach(item => {
+    filteredNavItems.forEach(item => {
       if (item.children) {
         const isChildActive = item.children.some(child =>
           pathname === child.href || pathname.startsWith(child.href + '/')
@@ -107,7 +125,7 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
         }
       }
     });
-  }, [pathname]);
+  }, [pathname, filteredNavItems]);
 
   const toggleCollapsed = () => {
     const newValue = !isCollapsed;
@@ -217,7 +235,7 @@ export default function LandlordSidebar({ pathname }: LandlordSidebarProps) {
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '0.5rem 0' }}>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <li key={item.label}>
               {item.children ? (
                 // Parent with children

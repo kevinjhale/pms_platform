@@ -213,6 +213,10 @@ Use **structured JSON logging** with:
 
 ## Development Workflow
 
+### Session Start
+
+**First conversation of each session**: Review `SESSION_NOTES.md` to understand recent work, current state, and what needs to be done next. This provides essential context for continuity.
+
 ### Planning
 
 **Context-dependent** approach:

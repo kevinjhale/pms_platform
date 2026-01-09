@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getOrgContext } from '@/lib/org-context';
-import { getPropertiesByOrganization } from '@/services/properties';
+import { getPropertiesByOrganization, getPropertiesForManager } from '@/services/properties';
 import Link from 'next/link';
 
 export default async function PropertiesPage() {
@@ -10,12 +10,22 @@ export default async function PropertiesPage() {
     redirect('/login');
   }
 
-  const { organization } = await getOrgContext();
+  const { organization, role: orgRole } = await getOrgContext();
   if (!organization) {
     redirect('/onboarding');
   }
 
-  const properties = await getPropertiesByOrganization(organization.id);
+  // Property managers (platform role) only see their assigned properties
+  // Org staff with 'manager' or 'staff' role also see filtered properties
+  const isPlatformManager = session.user.role === 'manager';
+  const isOrgStaff = orgRole === 'manager' || orgRole === 'staff';
+  const shouldFilterProperties = isPlatformManager || isOrgStaff;
+
+  const properties = shouldFilterProperties
+    ? await getPropertiesForManager(session.user.id, organization.id)
+    : await getPropertiesByOrganization(organization.id);
+
+  const isManager = isPlatformManager;
 
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
@@ -26,17 +36,23 @@ export default async function PropertiesPage() {
         marginBottom: '2rem',
       }}>
         <div>
-          <h1 style={{ marginBottom: '0.25rem' }}>Properties</h1>
+          <h1 style={{ marginBottom: '0.25rem' }}>
+            {isManager ? 'My Properties' : 'Properties'}
+          </h1>
           <p style={{ color: 'var(--secondary)' }}>
-            Manage your rental properties and units
+            {isManager
+              ? 'Properties you manage'
+              : 'Manage your rental properties and units'}
           </p>
         </div>
-        <Link
-          href="/landlord/properties/new"
-          className="btn btn-primary"
-        >
-          + Add Property
-        </Link>
+        {!isManager && (
+          <Link
+            href="/landlord/properties/new"
+            className="btn btn-primary"
+          >
+            + Add Property
+          </Link>
+        )}
       </div>
 
       {properties.length === 0 ? (
@@ -47,16 +63,22 @@ export default async function PropertiesPage() {
           borderRadius: '12px',
           border: '1px solid var(--border)',
         }}>
-          <h2 style={{ marginBottom: '0.5rem' }}>No properties yet</h2>
+          <h2 style={{ marginBottom: '0.5rem' }}>
+            {isManager ? 'No assigned properties' : 'No properties yet'}
+          </h2>
           <p style={{ color: 'var(--secondary)', marginBottom: '1.5rem' }}>
-            Add your first property to start managing rentals.
+            {isManager
+              ? 'You have no properties assigned to manage yet. Check your dashboard for pending assignments.'
+              : 'Add your first property to start managing rentals.'}
           </p>
-          <Link
-            href="/landlord/properties/new"
-            className="btn btn-primary"
-          >
-            + Add Your First Property
-          </Link>
+          {!isManager && (
+            <Link
+              href="/landlord/properties/new"
+              className="btn btn-primary"
+            >
+              + Add Your First Property
+            </Link>
+          )}
         </div>
       ) : (
         <div style={{

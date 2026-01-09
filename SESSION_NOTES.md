@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-08
+**Last Updated**: 2026-01-09
 
 ## Project Overview
 
@@ -24,7 +24,103 @@ The platform now has:
 
 ---
 
-## What Was Done This Session (2026-01-08)
+## What Was Done This Session (2026-01-09)
+
+### Property Manager (PM) Code Audit
+
+Conducted comprehensive review of PM functionality. Found significant gaps between schema design and implementation.
+
+#### Critical Issues Identified
+
+| Issue | Severity | Location | Details |
+|-------|----------|----------|---------|
+| **No PM Dashboard** | Critical | `src/app/manager/page.tsx` | Stub page only - PMs redirect to landlord views |
+| **PM Assignment Unused** | High | `src/services/properties.ts:207-250` | Functions exist but never called |
+| **No PM Access Filtering** | High | `src/services/properties.ts:52-78` | PMs see all org properties, not just assigned ones |
+| **Revenue Tracking Missing** | High | `src/db/schema/properties.ts:47` | `splitPercentage` field exists but no reporting |
+| **Role Terminology Confusion** | Medium | Schema files | Platform "manager" vs org "manager" role overlap |
+
+#### What Exists But Isn't Wired Up
+
+**Database Schema** (`src/db/schema/properties.ts:43-52`):
+```typescript
+propertyManagers table:
+- propertyId, userId, splitPercentage
+- status: 'proposed' | 'accepted' | 'rejected'
+- proposedBy, acceptedAt, createdAt
+```
+
+**Service Functions** (`src/services/properties.ts:207-250`):
+- `assignPropertyManager()` - Creates proposed assignment
+- `acceptPropertyManagerAgreement()` - PM accepts terms
+- `rejectPropertyManagerAgreement()` - PM rejects
+- `getPropertyManagers()` - Get PMs for property
+
+#### Current PM Flow (Broken)
+1. PM logs in → redirected to `/landlord` (same as landlord)
+2. PM sees ALL org properties (should only see assigned)
+3. PM has full landlord access (should be restricted)
+4. No way to accept/reject property assignments
+5. No revenue tracking or split calculations
+
+### Quick Wins Implemented
+
+**1. Sidebar Role Filtering** (Issue #54)
+- Modified `LandlordSidebar.tsx` to accept `userRole` prop
+- Added `requiredRoles` field to nav items
+- Settings and Screening hidden for non-admin users
+- Assignments link visible only for manager/staff roles
+
+**2. PM Property Filtering** (Issue #52)
+- Added `getPropertiesForManager()` function in `src/services/properties.ts`
+- Properties page now shows only assigned properties for PMs
+- Different empty state message for managers
+
+**3. PM Agreement Acceptance UI** (Issue #55)
+- Created `/landlord/assignments` page
+- `AssignmentCard` component with accept/decline buttons
+- Server action `respondToAssignment()` wires to existing backend
+
+### Larger PM Features - Implementation Plans
+
+#### 1. Landlord UI to Propose PM Assignments (Issue #56)
+**Files to modify:**
+- `src/app/landlord/properties/[id]/page.tsx` - Add "Assign Manager" section
+- Create `src/app/landlord/properties/[id]/AssignManagerModal.tsx`
+- Create `src/app/actions/pmAssignments.ts` - Server action for assignment
+
+**Steps:**
+1. Add "Property Managers" section to property detail page
+2. Create modal with user selector (org members) and split % input
+3. Wire to existing `assignPropertyManager()` service function
+4. Show current managers with status badges
+
+#### 2. PM Revenue Dashboard (Issues #53, #58)
+**New files:**
+- `src/services/pmRevenue.ts` - Revenue calculation service
+- `src/app/landlord/revenue/page.tsx` - Revenue dashboard page
+- `src/components/RevenueChart.tsx` - Chart component
+
+**Steps:**
+1. Create revenue calculation queries joining payments + propertyManagers
+2. Build dashboard with summary cards (monthly, YTD, by property)
+3. Add charts using existing chart library or add recharts
+4. Export to CSV functionality
+
+#### 3. PM-Specific Notifications (Issue #57)
+**Files to modify:**
+- `src/services/email.ts` - Add PM notification functions
+- `src/app/actions/pmAssignments.ts` - Trigger notifications
+
+**Events to notify:**
+- New assignment proposed
+- Assignment accepted/rejected (to landlord)
+- Maintenance ticket on assigned property
+- Rent payment received (when revenue tracking is done)
+
+---
+
+## Previous Session (2026-01-08)
 
 ### Photo Gallery for Maintenance Tickets
 

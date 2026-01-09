@@ -204,6 +204,65 @@ export async function deleteUnit(id: string) {
 
 // Property Managers
 
+/**
+ * Get properties assigned to a specific property manager (with accepted status)
+ */
+export async function getPropertiesForManager(userId: string, organizationId: string): Promise<PropertyWithUnitCount[]> {
+  const db = getDb();
+
+  const unitCountSubquery = db
+    .select({
+      propertyId: units.propertyId,
+      count: count().as('count'),
+    })
+    .from(units)
+    .groupBy(units.propertyId)
+    .as('unit_counts');
+
+  const result = await db
+    .select({
+      property: properties,
+      unitCount: sql<number>`COALESCE(${unitCountSubquery.count}, 0)`.as('unitCount'),
+    })
+    .from(properties)
+    .innerJoin(propertyManagers, eq(properties.id, propertyManagers.propertyId))
+    .leftJoin(unitCountSubquery, eq(properties.id, unitCountSubquery.propertyId))
+    .where(
+      and(
+        eq(properties.organizationId, organizationId),
+        eq(propertyManagers.userId, userId),
+        eq(propertyManagers.status, 'accepted')
+      )
+    )
+    .orderBy(desc(properties.createdAt));
+
+  return result.map(r => ({
+    ...r.property,
+    unitCount: Number(r.unitCount) || 0,
+  }));
+}
+
+/**
+ * Get pending PM assignments for a user (to show in dashboard)
+ */
+export async function getPendingAssignmentsForManager(userId: string) {
+  const db = getDb();
+  return db
+    .select({
+      assignment: propertyManagers,
+      property: properties,
+    })
+    .from(propertyManagers)
+    .innerJoin(properties, eq(propertyManagers.propertyId, properties.id))
+    .where(
+      and(
+        eq(propertyManagers.userId, userId),
+        eq(propertyManagers.status, 'proposed')
+      )
+    )
+    .orderBy(desc(propertyManagers.createdAt));
+}
+
 export async function assignPropertyManager(data: {
   propertyId: string;
   userId: string;
