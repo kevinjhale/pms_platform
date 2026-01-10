@@ -14,9 +14,14 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "npx tsx scripts/seed-demo-data.ts",
-    "scheduler": "npx tsx scripts/scheduler.ts",
-    "scheduler:once": "npx tsx scripts/scheduler.ts --once"
+    "db:seed": "bun run scripts/seed-demo-data.ts",
+    "scheduler": "bun run scripts/scheduler.ts",
+    "scheduler:once": "bun run scripts/scheduler.ts --once",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:seed": "docker compose exec web bun run scripts/seed-demo-data.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

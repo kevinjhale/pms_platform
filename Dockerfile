@@ -1,18 +1,22 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine AS base
+FROM oven/bun:1-alpine AS base
 
 # Install dependencies for better-sqlite3 native compilation
-RUN apk add --no-cache python3 make g++ sqlite
+RUN apk add --no-cache python3 make g++ sqlite nodejs
 
-# Install dependencies only when needed
+# =============================================================================
+# Stage 1: Dependencies
+# =============================================================================
 FROM base AS deps
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile
 
-# Rebuild the source code only when needed
+# =============================================================================
+# Stage 2: Builder
+# =============================================================================
 FROM base AS builder
 WORKDIR /app
 
@@ -21,9 +25,11 @@ COPY . .
 
 # Build Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN bun run build
 
-# Production image
+# =============================================================================
+# Stage 3: Production Runner
+# =============================================================================
 FROM base AS runner
 WORKDIR /app
 
@@ -31,13 +37,22 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
 # Copy standalone build
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy additional files needed for scheduler and database migrations
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
@@ -48,4 +63,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Default command - run the web server
 CMD ["node", "server.js"]

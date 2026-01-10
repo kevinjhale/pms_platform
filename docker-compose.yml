@@ -1,18 +1,33 @@
 services:
-  pms:
+  # =============================================================================
+  # Web Application
+  # =============================================================================
+  web:
     build: .
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/data/pms.db
-      - AUTH_SECRET=${AUTH_SECRET:-please-change-this-in-production}
+      - AUTH_SECRET=${AUTH_SECRET:?AUTH_SECRET is required}
       - AUTH_TRUST_HOST=true
-      # OAuth providers (optional)
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      # OAuth providers (optional - can configure via UI)
       - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID:-}
       - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET:-}
       - AUTH_GITHUB_ID=${AUTH_GITHUB_ID:-}
       - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET:-}
+      # Stripe (optional - can configure via UI)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      # SMTP (optional - can configure via UI)
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+      - APP_NAME=${APP_NAME:-PMS Platform}
     volumes:
       - pms_data:/app/data
     restart: unless-stopped
@@ -22,6 +37,30 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # =============================================================================
+  # Background Job Scheduler
+  # =============================================================================
+  scheduler:
+    build: .
+    command: ["bun", "run", "scripts/scheduler.ts"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/pms.db
+      - AUTH_SECRET=${AUTH_SECRET:?AUTH_SECRET is required}
+      # SMTP for sending notifications
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+      - APP_NAME=${APP_NAME:-PMS Platform}
+    volumes:
+      - pms_data:/app/data
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
 
 volumes:
   pms_data:
