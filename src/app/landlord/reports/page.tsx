@@ -75,6 +75,23 @@ export default async function ReportsPage() {
         </div>
       </section>
 
+      {/* Quick Links */}
+      <section style={{ marginBottom: "2.5rem" }}>
+        <div style={{
+          display: "flex",
+          gap: "1rem",
+          flexWrap: "wrap",
+        }}>
+          <Link
+            href="/landlord/reports/rent-roll"
+            className="btn btn-primary"
+            style={{ textDecoration: "none" }}
+          >
+            View Rent Roll
+          </Link>
+        </div>
+      </section>
+
       {/* Revenue Section */}
       <section style={{ marginBottom: "2.5rem" }}>
         <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem" }}>

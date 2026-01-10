@@ -12,6 +12,7 @@ export const properties = sqliteTable('properties', {
   state: text('state').notNull(),
   zip: text('zip').notNull(),
   country: text('country').notNull().default('US'),
+  apn: text('apn'), // Assessor's Parcel Number
   propertyType: text('property_type', {
     enum: ['single_family', 'multi_family', 'condo', 'apartment', 'townhouse', 'other']
   }).notNull(),
@@ -34,6 +35,7 @@ export const units = sqliteTable('units', {
   depositAmount: integer('deposit_amount'), // stored in cents
   status: text('status', { enum: ['available', 'occupied', 'maintenance', 'unlisted'] }).notNull().default('unlisted'),
   availableDate: integer('available_date', { mode: 'timestamp' }),
+  listedDate: integer('listed_date', { mode: 'timestamp' }), // When unit was first listed
   features: text('features', { mode: 'json' }).$type<string[]>(),
   description: text('description'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
