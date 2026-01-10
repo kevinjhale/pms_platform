@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getOrgContext } from '@/lib/org-context';
-import { getRentRoll, calculateRentRollTotals } from '@/services/rentRoll';
+import { getRentRoll, calculateRentRollTotals, getMonthlyPayments } from '@/services/rentRoll';
 import Link from 'next/link';
 
 function formatCurrency(cents: number): string {
@@ -46,6 +46,9 @@ function getStatusBadge(status: string | null) {
   );
 }
 
+// Keys that should have a bold separator ABOVE them
+const sectionStartKeys = new Set(['tenant', 'rent', 'listedDate']);
+
 export default async function RentRollPage() {
   const session = await auth();
   if (!session?.user) {
@@ -60,16 +63,23 @@ export default async function RentRollPage() {
   const rentRoll = await getRentRoll(organization.id);
   const totals = calculateRentRollTotals(rentRoll);
 
+  // Get current year's monthly payments
+  const currentYear = new Date().getFullYear();
+  const monthlyPayments = await getMonthlyPayments(organization.id, currentYear);
+
   // Define the rows for the transposed table
   const rows = [
+    // Property section
     { label: 'Property', key: 'property' },
     { label: 'Address', key: 'address' },
     { label: 'APN', key: 'apn' },
     { label: 'Unit', key: 'unit' },
+    // Tenant section
     { label: 'Tenant', key: 'tenant' },
     { label: 'Co-Signer', key: 'cosigner' },
     { label: 'Email', key: 'email' },
     { label: 'Phone', key: 'phone' },
+    // Financial section
     { label: 'Rent', key: 'rent' },
     { label: 'Water & Trash', key: 'waterTrash' },
     { label: 'Electricity', key: 'electricity' },
@@ -78,10 +88,14 @@ export default async function RentRollPage() {
     { label: 'Cleaning Fee', key: 'cleaningFee' },
     { label: 'Current Balance', key: 'balance' },
     { label: 'Status', key: 'status' },
+    // Dates section
     { label: 'Listed Date', key: 'listedDate' },
     { label: 'Lease Start', key: 'leaseStart' },
     { label: 'Lease End', key: 'leaseEnd' },
   ];
+
+  // Month abbreviations for the payment table
+  const monthAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   // Helper to get cell value for each row/entry combination
   const getCellValue = (key: string, entry: typeof rentRoll[0]) => {
@@ -150,6 +164,20 @@ export default async function RentRollPage() {
       default:
         return '-';
     }
+  };
+
+  // Get payment for a specific lease and month
+  const getMonthPayment = (leaseId: string, monthIndex: number) => {
+    const monthData = monthlyPayments[monthIndex];
+    if (!monthData) return null;
+
+    const leaseEntries = monthData.entries.filter(e => e.leaseId === leaseId);
+    if (leaseEntries.length === 0) return null;
+
+    const totalDue = leaseEntries.reduce((sum, e) => sum + e.amountDue, 0);
+    const totalPaid = leaseEntries.reduce((sum, e) => sum + e.amountPaid, 0);
+
+    return { due: totalDue, paid: totalPaid, balance: totalDue - totalPaid };
   };
 
   return (
@@ -275,116 +303,299 @@ export default async function RentRollPage() {
           </p>
         </div>
       ) : (
-        <div
-          style={{
-            backgroundColor: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Scrollable container with large scrollbar */}
+        <>
+          {/* Main Rent Roll Table */}
           <div
             style={{
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              scrollbarWidth: 'auto',
-              scrollbarColor: 'var(--border) var(--surface)',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              marginBottom: '2rem',
             }}
-            className="rent-roll-scroll"
           >
-            <style>{`
-              .rent-roll-scroll::-webkit-scrollbar {
-                height: 16px;
-              }
-              .rent-roll-scroll::-webkit-scrollbar-track {
-                background: var(--surface);
-                border-top: 1px solid var(--border);
-              }
-              .rent-roll-scroll::-webkit-scrollbar-thumb {
-                background: var(--border);
-                border-radius: 8px;
-                border: 3px solid var(--surface);
-              }
-              .rent-roll-scroll::-webkit-scrollbar-thumb:hover {
-                background: var(--secondary);
-              }
-              /* Firefox */
-              .rent-roll-scroll {
-                scrollbar-width: auto;
-              }
-            `}</style>
-            <table style={{
-              borderCollapse: 'collapse',
-              fontSize: '0.875rem',
-              minWidth: 'max-content',
-            }}>
-              <thead>
-                <tr>
-                  <th style={{
-                    padding: '0.75rem 1rem',
-                    textAlign: 'left',
-                    fontWeight: 600,
-                    backgroundColor: 'var(--border)',
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 10,
-                    minWidth: '150px',
-                  }}>
-                    Field
-                  </th>
-                  {rentRoll.map((entry) => (
-                    <th
-                      key={entry.leaseId}
-                      style={{
-                        padding: '0.75rem 1rem',
-                        textAlign: 'left',
-                        fontWeight: 600,
-                        backgroundColor: 'var(--border)',
-                        minWidth: '180px',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {entry.propertyName}
-                      {entry.unitNumber && ` #${entry.unitNumber}`}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, rowIndex) => (
-                  <tr key={row.key} style={{
-                    backgroundColor: rowIndex % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
-                  }}>
-                    <td style={{
+            <div
+              style={{
+                overflowX: 'auto',
+                overflowY: 'hidden',
+              }}
+              className="rent-roll-scroll"
+            >
+              <style>{`
+                .rent-roll-scroll::-webkit-scrollbar {
+                  height: 16px;
+                }
+                .rent-roll-scroll::-webkit-scrollbar-track {
+                  background: var(--surface);
+                  border-top: 1px solid var(--border);
+                }
+                .rent-roll-scroll::-webkit-scrollbar-thumb {
+                  background: #9ca3af;
+                  border-radius: 8px;
+                  border: 3px solid var(--surface);
+                }
+                .rent-roll-scroll::-webkit-scrollbar-thumb:hover {
+                  background: #6b7280;
+                }
+                .rent-roll-scroll {
+                  scrollbar-width: auto;
+                  scrollbar-color: #9ca3af var(--surface);
+                }
+              `}</style>
+              <table style={{
+                borderCollapse: 'collapse',
+                fontSize: '0.875rem',
+                minWidth: 'max-content',
+              }}>
+                <thead>
+                  <tr>
+                    <th style={{
                       padding: '0.75rem 1rem',
-                      fontWeight: 500,
-                      backgroundColor: rowIndex % 2 === 0 ? 'var(--surface)' : 'rgba(0,0,0,0.02)',
-                      borderRight: '1px solid var(--border)',
+                      textAlign: 'left',
+                      fontWeight: 600,
+                      backgroundColor: 'var(--border)',
                       position: 'sticky',
                       left: 0,
-                      zIndex: 5,
+                      zIndex: 10,
+                      minWidth: '150px',
                     }}>
-                      {row.label}
-                    </td>
+                      Field
+                    </th>
                     {rentRoll.map((entry) => (
-                      <td
+                      <th
                         key={entry.leaseId}
                         style={{
                           padding: '0.75rem 1rem',
-                          borderTop: '1px solid var(--border)',
+                          textAlign: 'left',
+                          fontWeight: 600,
+                          backgroundColor: 'var(--border)',
+                          minWidth: '180px',
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {getCellValue(row.key, entry)}
-                      </td>
+                        {entry.propertyName}
+                        {entry.unitNumber && ` #${entry.unitNumber}`}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((row, rowIndex) => {
+                    const isSectionStart = sectionStartKeys.has(row.key);
+                    return (
+                      <tr key={row.key} style={{
+                        backgroundColor: rowIndex % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
+                      }}>
+                        <td style={{
+                          padding: '0.75rem 1rem',
+                          fontWeight: 500,
+                          backgroundColor: rowIndex % 2 === 0 ? 'var(--surface)' : 'rgba(0,0,0,0.02)',
+                          borderRight: '1px solid var(--border)',
+                          borderTop: isSectionStart ? '2px solid #9ca3af' : '1px solid var(--border)',
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 5,
+                        }}>
+                          {row.label}
+                        </td>
+                        {rentRoll.map((entry) => (
+                          <td
+                            key={entry.leaseId}
+                            style={{
+                              padding: '0.75rem 1rem',
+                              borderTop: isSectionStart ? '2px solid #9ca3af' : '1px solid var(--border)',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {getCellValue(row.key, entry)}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Monthly Payment Breakdown */}
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
+            Monthly Payments - {currentYear}
+          </h2>
+          <div
+            style={{
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                overflowX: 'auto',
+                overflowY: 'hidden',
+              }}
+              className="rent-roll-scroll"
+            >
+              <table style={{
+                borderCollapse: 'collapse',
+                fontSize: '0.875rem',
+                minWidth: 'max-content',
+                width: '100%',
+              }}>
+                <thead>
+                  <tr>
+                    <th style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'left',
+                      fontWeight: 600,
+                      backgroundColor: 'var(--border)',
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 10,
+                      minWidth: '150px',
+                    }}>
+                      Property
+                    </th>
+                    {monthAbbrev.map((month, idx) => (
+                      <th
+                        key={month}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          textAlign: 'right',
+                          fontWeight: 600,
+                          backgroundColor: 'var(--border)',
+                          minWidth: '100px',
+                        }}
+                      >
+                        {month}
+                      </th>
+                    ))}
+                    <th style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'right',
+                      fontWeight: 600,
+                      backgroundColor: 'var(--border)',
+                      minWidth: '120px',
+                      borderLeft: '2px solid #9ca3af',
+                    }}>
+                      YTD Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rentRoll.map((entry, rowIndex) => {
+                    // Calculate YTD total for this lease
+                    let ytdTotal = 0;
+                    const monthValues = monthAbbrev.map((_, idx) => {
+                      const payment = getMonthPayment(entry.leaseId, idx);
+                      if (payment) {
+                        ytdTotal += payment.paid;
+                      }
+                      return payment;
+                    });
+
+                    return (
+                      <tr key={entry.leaseId} style={{
+                        backgroundColor: rowIndex % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
+                      }}>
+                        <td style={{
+                          padding: '0.75rem 1rem',
+                          fontWeight: 500,
+                          backgroundColor: rowIndex % 2 === 0 ? 'var(--surface)' : 'rgba(0,0,0,0.02)',
+                          borderRight: '1px solid var(--border)',
+                          borderTop: '1px solid var(--border)',
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 5,
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {entry.propertyName}
+                          {entry.unitNumber && ` #${entry.unitNumber}`}
+                        </td>
+                        {monthValues.map((payment, idx) => (
+                          <td
+                            key={idx}
+                            style={{
+                              padding: '0.75rem 1rem',
+                              textAlign: 'right',
+                              borderTop: '1px solid var(--border)',
+                              color: payment
+                                ? payment.balance > 0
+                                  ? '#dc2626'
+                                  : payment.paid > 0
+                                    ? '#166534'
+                                    : 'var(--secondary)'
+                                : 'var(--secondary)',
+                            }}
+                          >
+                            {payment ? formatCurrency(payment.paid) : '-'}
+                          </td>
+                        ))}
+                        <td style={{
+                          padding: '0.75rem 1rem',
+                          textAlign: 'right',
+                          fontWeight: 600,
+                          borderTop: '1px solid var(--border)',
+                          borderLeft: '2px solid #9ca3af',
+                        }}>
+                          {formatCurrency(ytdTotal)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* Totals row */}
+                  <tr style={{ backgroundColor: 'var(--border)' }}>
+                    <td style={{
+                      padding: '0.75rem 1rem',
+                      fontWeight: 600,
+                      borderTop: '2px solid #9ca3af',
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 5,
+                      backgroundColor: 'var(--border)',
+                    }}>
+                      Monthly Totals
+                    </td>
+                    {monthAbbrev.map((_, idx) => {
+                      const monthData = monthlyPayments[idx];
+                      const monthTotal = monthData
+                        ? monthData.entries.reduce((sum, e) => sum + e.amountPaid, 0)
+                        : 0;
+                      return (
+                        <td
+                          key={idx}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            textAlign: 'right',
+                            fontWeight: 600,
+                            borderTop: '2px solid #9ca3af',
+                          }}
+                        >
+                          {formatCurrency(monthTotal)}
+                        </td>
+                      );
+                    })}
+                    <td style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'right',
+                      fontWeight: 600,
+                      borderTop: '2px solid #9ca3af',
+                      borderLeft: '2px solid #9ca3af',
+                    }}>
+                      {formatCurrency(
+                        monthlyPayments.reduce(
+                          (sum, month) => sum + month.entries.reduce((s, e) => s + e.amountPaid, 0),
+                          0
+                        )
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </main>
   );
