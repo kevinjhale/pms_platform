@@ -18,7 +18,9 @@ The platform now has:
 - Per-organization integration settings UI
 - Encrypted credential storage (AES-256-GCM)
 - Photo gallery with lightbox viewer for maintenance tickets
-- **NEW: Property cards with visible borders and unit counts**
+- Property cards with visible borders and unit counts
+- **NEW: Rent Roll report with transposed table, utility jurisdictions, and monthly breakdown**
+- **NEW: Comprehensive demo data for rent roll testing**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
 
@@ -26,7 +28,92 @@ The platform now has:
 
 ## What Was Done This Session (2026-01-09)
 
-### Property Manager (PM) Code Audit
+### Rent Roll Report - Complete Implementation
+
+Built the core financial report for property management - the Rent Roll. This is the primary document the first users (a company acting as both landlords and property managers) will use.
+
+#### Schema Changes
+
+**New/Updated Tables:**
+| Table | Changes |
+|-------|---------|
+| `properties` | Added `apn`, `utilityWater`, `utilityTrash`, `utilityElectricity` |
+| `units` | Added `listedDate` |
+| `users` | Added `phone` |
+| `leases` | Added `coSignerName/Email/Phone`, `paymentStatus`, `cleaningFee` |
+| `leaseCharges` | **NEW** - Recurring charges (water, trash, electricity, parking, pet fees) |
+| `paymentLineItems` | **NEW** - Payment breakdown by category for each payment period |
+
+#### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/services/rentRoll.ts` | Service for rent roll data with charges and balances |
+| `src/app/landlord/reports/rent-roll/page.tsx` | Transposed rent roll table with monthly breakdown |
+
+#### Rent Roll Features
+
+- **Transposed table layout** - Fields as rows, entries as columns
+- **Sticky first column** - Field labels always visible when scrolling
+- **Large horizontal scrollbar** (16px) - Always visible for easy navigation
+- **Section separators** - Bold borders between Property/Tenant, Phone/Rent, Status/Dates
+- **Utility jurisdiction rows** - Water, Trash, Electricity providers under APN (indented sub-rows)
+- **Clickable property names** - Links to property detail page
+- **Color-coded payment status** - Current (green), Partial (yellow), Delinquent (red)
+- **Monthly payment breakdown table** - Shows payments for each month with YTD totals
+- **Summary cards** - Total units, monthly rent, total charges, outstanding balance
+
+#### Fields Displayed
+
+**Property Section:**
+- Property (clickable link)
+- Address
+- APN
+  - Water (utility provider)
+  - Trash (utility provider)
+  - Electricity (utility provider)
+- Unit
+
+**Tenant Section:**
+- Tenant name
+- Co-Signer
+- Email (both tenant and co-signer)
+- Phone (both tenant and co-signer)
+
+**Financial Section:**
+- Rent
+- Water & Trash
+- Electricity
+- Total Monthly
+- Security Deposit
+- Cleaning Fee
+- Current Balance
+- Status
+
+**Dates Section:**
+- Listed Date
+- Lease Start
+- Lease End
+
+#### Demo Data Seeded
+
+| Data Type | Count | Details |
+|-----------|-------|---------|
+| User phones | 17 | All users now have phone numbers |
+| Property APNs | 6 | Assessor Parcel Numbers for each property |
+| Utility providers | 6x3 | Water, Trash, Electricity for each property |
+| Unit listed dates | 20 | Realistic dates based on occupancy |
+| Co-signers | 4 | 4 of 9 leases have co-signer info |
+| Lease charges | 22 | Water/trash, electricity, gas, parking, pet fees |
+| Payment line items | 171 | Monthly breakdown by category |
+
+#### Navigation
+
+Added "Rent Roll" to Reports submenu in sidebar: **Reports → Rent Roll**
+
+---
+
+### Property Manager (PM) Code Audit (Earlier This Session)
 
 Conducted comprehensive review of PM functionality. Found significant gaps between schema design and implementation.
 

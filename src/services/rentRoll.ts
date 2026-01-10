@@ -21,6 +21,10 @@ export interface RentRollEntry {
   address: string;
   fullAddress: string;
   apn: string | null;
+  // Utility jurisdictions
+  utilityWater: string | null;
+  utilityTrash: string | null;
+  utilityElectricity: string | null;
 
   // Unit info
   unitId: string;
@@ -151,6 +155,9 @@ export async function getRentRoll(organizationId: string): Promise<RentRollEntry
       address: row.property.address,
       fullAddress: `${row.property.address}, ${row.property.city}, ${row.property.state} ${row.property.zip}`,
       apn: row.property.apn,
+      utilityWater: row.property.utilityWater,
+      utilityTrash: row.property.utilityTrash,
+      utilityElectricity: row.property.utilityElectricity,
 
       unitId: row.unit.id,
       unitNumber: row.unit.unitNumber,

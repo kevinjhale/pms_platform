@@ -73,6 +73,9 @@ export default async function RentRollPage() {
     { label: 'Property', key: 'property' },
     { label: 'Address', key: 'address' },
     { label: 'APN', key: 'apn' },
+    { label: '  Water', key: 'utilityWater', isSubRow: true },
+    { label: '  Trash', key: 'utilityTrash', isSubRow: true },
+    { label: '  Electricity', key: 'utilityElectricity', isSubRow: true },
     { label: 'Unit', key: 'unit' },
     // Tenant section
     { label: 'Tenant', key: 'tenant' },
@@ -101,11 +104,28 @@ export default async function RentRollPage() {
   const getCellValue = (key: string, entry: typeof rentRoll[0]) => {
     switch (key) {
       case 'property':
-        return <span style={{ fontWeight: 500 }}>{entry.propertyName}</span>;
+        return (
+          <Link
+            href={`/landlord/properties/${entry.propertyId}`}
+            style={{
+              fontWeight: 500,
+              color: 'var(--accent)',
+              textDecoration: 'none',
+            }}
+          >
+            {entry.propertyName}
+          </Link>
+        );
       case 'address':
         return entry.address;
       case 'apn':
         return entry.apn || '-';
+      case 'utilityWater':
+        return <span style={{ fontSize: '0.8125rem', color: 'var(--secondary)' }}>{entry.utilityWater || '-'}</span>;
+      case 'utilityTrash':
+        return <span style={{ fontSize: '0.8125rem', color: 'var(--secondary)' }}>{entry.utilityTrash || '-'}</span>;
+      case 'utilityElectricity':
+        return <span style={{ fontSize: '0.8125rem', color: 'var(--secondary)' }}>{entry.utilityElectricity || '-'}</span>;
       case 'unit':
         return entry.unitNumber || '-';
       case 'tenant':
@@ -382,13 +402,16 @@ export default async function RentRollPage() {
                 <tbody>
                   {rows.map((row, rowIndex) => {
                     const isSectionStart = sectionStartKeys.has(row.key);
+                    const isSubRow = (row as any).isSubRow;
                     return (
                       <tr key={row.key} style={{
                         backgroundColor: rowIndex % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
                       }}>
                         <td style={{
-                          padding: '0.75rem 1rem',
-                          fontWeight: 500,
+                          padding: isSubRow ? '0.5rem 1rem 0.5rem 1.5rem' : '0.75rem 1rem',
+                          fontWeight: isSubRow ? 400 : 500,
+                          fontSize: isSubRow ? '0.8125rem' : '0.875rem',
+                          color: isSubRow ? 'var(--secondary)' : 'inherit',
                           backgroundColor: rowIndex % 2 === 0 ? 'var(--surface)' : 'rgba(0,0,0,0.02)',
                           borderRight: '1px solid var(--border)',
                           borderTop: isSectionStart ? '2px solid #9ca3af' : '1px solid var(--border)',
@@ -402,7 +425,7 @@ export default async function RentRollPage() {
                           <td
                             key={entry.leaseId}
                             style={{
-                              padding: '0.75rem 1rem',
+                              padding: isSubRow ? '0.5rem 1rem' : '0.75rem 1rem',
                               borderTop: isSectionStart ? '2px solid #9ca3af' : '1px solid var(--border)',
                               whiteSpace: 'nowrap',
                             }}

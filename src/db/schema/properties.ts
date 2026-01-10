@@ -13,6 +13,10 @@ export const properties = sqliteTable('properties', {
   zip: text('zip').notNull(),
   country: text('country').notNull().default('US'),
   apn: text('apn'), // Assessor's Parcel Number
+  // Utility jurisdiction info - which company/district handles each utility
+  utilityWater: text('utility_water'),
+  utilityTrash: text('utility_trash'),
+  utilityElectricity: text('utility_electricity'),
   propertyType: text('property_type', {
     enum: ['single_family', 'multi_family', 'condo', 'apartment', 'townhouse', 'other']
   }).notNull(),
