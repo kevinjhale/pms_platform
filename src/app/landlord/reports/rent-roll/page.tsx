@@ -39,6 +39,7 @@ function getStatusBadge(status: string | null) {
       backgroundColor: style.bg,
       color: style.color,
       textTransform: 'capitalize',
+      whiteSpace: 'nowrap',
     }}>
       {status || 'current'}
     </span>
@@ -58,6 +59,98 @@ export default async function RentRollPage() {
 
   const rentRoll = await getRentRoll(organization.id);
   const totals = calculateRentRollTotals(rentRoll);
+
+  // Define the rows for the transposed table
+  const rows = [
+    { label: 'Property', key: 'property' },
+    { label: 'Address', key: 'address' },
+    { label: 'APN', key: 'apn' },
+    { label: 'Unit', key: 'unit' },
+    { label: 'Tenant', key: 'tenant' },
+    { label: 'Co-Signer', key: 'cosigner' },
+    { label: 'Email', key: 'email' },
+    { label: 'Phone', key: 'phone' },
+    { label: 'Rent', key: 'rent' },
+    { label: 'Water & Trash', key: 'waterTrash' },
+    { label: 'Electricity', key: 'electricity' },
+    { label: 'Total Monthly', key: 'totalMonthly' },
+    { label: 'Security Deposit', key: 'deposit' },
+    { label: 'Cleaning Fee', key: 'cleaningFee' },
+    { label: 'Current Balance', key: 'balance' },
+    { label: 'Status', key: 'status' },
+    { label: 'Listed Date', key: 'listedDate' },
+    { label: 'Lease Start', key: 'leaseStart' },
+    { label: 'Lease End', key: 'leaseEnd' },
+  ];
+
+  // Helper to get cell value for each row/entry combination
+  const getCellValue = (key: string, entry: typeof rentRoll[0]) => {
+    switch (key) {
+      case 'property':
+        return <span style={{ fontWeight: 500 }}>{entry.propertyName}</span>;
+      case 'address':
+        return entry.address;
+      case 'apn':
+        return entry.apn || '-';
+      case 'unit':
+        return entry.unitNumber || '-';
+      case 'tenant':
+        return entry.tenantName || 'Unknown';
+      case 'cosigner':
+        return entry.coSignerName || '-';
+      case 'email':
+        return (
+          <div>
+            <div style={{ fontSize: '0.75rem' }}>{entry.tenantEmail}</div>
+            {entry.coSignerEmail && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>{entry.coSignerEmail}</div>
+            )}
+          </div>
+        );
+      case 'phone':
+        return (
+          <div>
+            <div style={{ fontSize: '0.75rem' }}>{entry.tenantPhone || '-'}</div>
+            {entry.coSignerPhone && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>{entry.coSignerPhone}</div>
+            )}
+          </div>
+        );
+      case 'rent':
+        return formatCurrency(entry.monthlyRent);
+      case 'waterTrash':
+        const waterCharge = entry.charges.find(c => c.category === 'water_trash');
+        return waterCharge ? formatCurrency(waterCharge.amount) : '-';
+      case 'electricity':
+        const elecCharge = entry.charges.find(c => c.category === 'electricity');
+        return elecCharge ? formatCurrency(elecCharge.amount) : '-';
+      case 'totalMonthly':
+        return <span style={{ fontWeight: 500 }}>{formatCurrency(entry.totalMonthlyCharges)}</span>;
+      case 'deposit':
+        return entry.securityDeposit ? formatCurrency(entry.securityDeposit) : '-';
+      case 'cleaningFee':
+        return entry.cleaningFee ? formatCurrency(entry.cleaningFee) : '-';
+      case 'balance':
+        return (
+          <span style={{
+            fontWeight: entry.currentBalance !== 0 ? 500 : 400,
+            color: entry.currentBalance > 0 ? '#dc2626' : entry.currentBalance < 0 ? '#166534' : 'inherit',
+          }}>
+            {formatCurrency(entry.currentBalance)}
+          </span>
+        );
+      case 'status':
+        return getStatusBadge(entry.paymentStatus);
+      case 'listedDate':
+        return formatDate(entry.listedDate);
+      case 'leaseStart':
+        return formatDate(entry.startDate);
+      case 'leaseEnd':
+        return formatDate(entry.endDate);
+      default:
+        return '-';
+    }
+  };
 
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
@@ -182,106 +275,115 @@ export default async function RentRollPage() {
           </p>
         </div>
       ) : (
-        <div style={{
-          overflowX: 'auto',
-          backgroundColor: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-        }}>
-          <table style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            fontSize: '0.875rem',
-          }}>
-            <thead>
-              <tr style={{ backgroundColor: 'var(--border)' }}>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600 }}>Property</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600 }}>Unit</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600 }}>Tenant</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600 }}>Contact</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>Rent</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>Total</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>Deposit</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>Balance</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600 }}>Lease Period</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rentRoll.map((entry, index) => (
-                <tr key={entry.leaseId} style={{
-                  borderTop: '1px solid var(--border)',
-                  backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
-                }}>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontWeight: 500 }}>{entry.propertyName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>
-                      {entry.address}
-                    </div>
-                    {entry.apn && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>
-                        APN: {entry.apn}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    {entry.unitNumber || '-'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div>{entry.tenantName || 'Unknown'}</div>
-                    {entry.coSignerName && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>
-                        Co-signer: {entry.coSignerName}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontSize: '0.75rem' }}>{entry.tenantEmail}</div>
-                    {entry.tenantPhone && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>
-                        {entry.tenantPhone}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                    {formatCurrency(entry.monthlyRent)}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                    {formatCurrency(entry.totalMonthlyCharges)}
-                    {entry.charges.length > 1 && (
-                      <div style={{ fontSize: '0.625rem', color: 'var(--secondary)' }}>
-                        +{entry.charges.length - 1} charges
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                    {entry.securityDeposit ? formatCurrency(entry.securityDeposit) : '-'}
-                  </td>
-                  <td style={{
+        <div
+          style={{
+            backgroundColor: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Scrollable container with large scrollbar */}
+          <div
+            style={{
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              scrollbarWidth: 'auto',
+              scrollbarColor: 'var(--border) var(--surface)',
+            }}
+            className="rent-roll-scroll"
+          >
+            <style>{`
+              .rent-roll-scroll::-webkit-scrollbar {
+                height: 16px;
+              }
+              .rent-roll-scroll::-webkit-scrollbar-track {
+                background: var(--surface);
+                border-top: 1px solid var(--border);
+              }
+              .rent-roll-scroll::-webkit-scrollbar-thumb {
+                background: var(--border);
+                border-radius: 8px;
+                border: 3px solid var(--surface);
+              }
+              .rent-roll-scroll::-webkit-scrollbar-thumb:hover {
+                background: var(--secondary);
+              }
+              /* Firefox */
+              .rent-roll-scroll {
+                scrollbar-width: auto;
+              }
+            `}</style>
+            <table style={{
+              borderCollapse: 'collapse',
+              fontSize: '0.875rem',
+              minWidth: 'max-content',
+            }}>
+              <thead>
+                <tr>
+                  <th style={{
                     padding: '0.75rem 1rem',
-                    textAlign: 'right',
-                    color: entry.currentBalance > 0 ? '#dc2626' : entry.currentBalance < 0 ? '#166534' : 'inherit',
-                    fontWeight: entry.currentBalance !== 0 ? 500 : 400,
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    backgroundColor: 'var(--border)',
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 10,
+                    minWidth: '150px',
                   }}>
-                    {formatCurrency(entry.currentBalance)}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    {getStatusBadge(entry.paymentStatus)}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontSize: '0.75rem' }}>
-                      {formatDate(entry.startDate)} - {formatDate(entry.endDate)}
-                    </div>
-                    {entry.listedDate && (
-                      <div style={{ fontSize: '0.625rem', color: 'var(--secondary)' }}>
-                        Listed: {formatDate(entry.listedDate)}
-                      </div>
-                    )}
-                  </td>
+                    Field
+                  </th>
+                  {rentRoll.map((entry) => (
+                    <th
+                      key={entry.leaseId}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        backgroundColor: 'var(--border)',
+                        minWidth: '180px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {entry.propertyName}
+                      {entry.unitNumber && ` #${entry.unitNumber}`}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((row, rowIndex) => (
+                  <tr key={row.key} style={{
+                    backgroundColor: rowIndex % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
+                  }}>
+                    <td style={{
+                      padding: '0.75rem 1rem',
+                      fontWeight: 500,
+                      backgroundColor: rowIndex % 2 === 0 ? 'var(--surface)' : 'rgba(0,0,0,0.02)',
+                      borderRight: '1px solid var(--border)',
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 5,
+                    }}>
+                      {row.label}
+                    </td>
+                    {rentRoll.map((entry) => (
+                      <td
+                        key={entry.leaseId}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderTop: '1px solid var(--border)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {getCellValue(row.key, entry)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </main>

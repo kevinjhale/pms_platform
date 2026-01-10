@@ -63,9 +63,12 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    label: 'Reports & Analytics',
-    href: '/landlord/reports',
+    label: 'Reports',
     icon: '\u2630', // Chart bars
+    children: [
+      { label: 'Dashboard', href: '/landlord/reports' },
+      { label: 'Rent Roll', href: '/landlord/reports/rent-roll' },
+    ],
   },
   {
     label: 'Activity Log',
