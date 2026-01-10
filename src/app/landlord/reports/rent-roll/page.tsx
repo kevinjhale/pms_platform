@@ -89,6 +89,7 @@ export default async function RentRollPage() {
     { label: 'Total Monthly', key: 'totalMonthly' },
     { label: 'Security Deposit', key: 'deposit' },
     { label: 'Cleaning Fee', key: 'cleaningFee' },
+    // TODO: Add Pet Fee row - pull from leaseCharges where category === 'pet_fee'
     { label: 'Current Balance', key: 'balance' },
     { label: 'Status', key: 'status' },
     // Dates section

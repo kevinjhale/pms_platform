@@ -111,6 +111,10 @@ Built the core financial report for property management - the Rent Roll. This is
 
 Added "Rent Roll" to Reports submenu in sidebar: **Reports → Rent Roll**
 
+#### Outstanding TODOs
+
+- [ ] **Pet Fee row** - Add Pet Fee field under Cleaning Fee (pull from `leaseCharges` where `category === 'pet_fee'`)
+
 ---
 
 ### Property Manager (PM) Code Audit (Earlier This Session)
