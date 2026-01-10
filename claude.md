@@ -217,19 +217,62 @@ Use **structured JSON logging** with:
 
 **First conversation of each session**: Review `SESSION_NOTES.md` to understand recent work, current state, and what needs to be done next. This provides essential context for continuity.
 
+### Agent-Driven Workflow
+
+**Use the custom agents in `.claude/agents/` at each stage of development:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     FEATURE DEVELOPMENT                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. PLAN (non-trivial features)                              │
+│     └── architect agent ─────────────────────── Opus        │
+│                                                              │
+│  2. IMPLEMENT                                                │
+│     └── sql-writer (if DB/schema work) ──────── Sonnet      │
+│     └── api-designer (if API work) ──────────── Sonnet      │
+│                                                              │
+│  3. REVIEW                                                   │
+│     └── code-reviewer ───────────────────────── Sonnet      │
+│     └── a11y-auditor (if UI work) ───────────── Haiku       │
+│                                                              │
+│  4. TEST                                                     │
+│     └── test-writer (for complex logic) ─────── Sonnet      │
+│                                                              │
+│  5. COMMIT                                                   │
+│     └── commit-preparer ─────────────────────── Haiku       │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**When to invoke agents:**
+- **architect**: Before planning non-trivial features or major changes
+- **sql-writer**: When adding/modifying database schema or writing complex queries
+- **api-designer**: When creating new API endpoints
+- **code-reviewer**: After completing implementation, before commit
+- **a11y-auditor**: After UI changes (components, pages, modals)
+- **test-writer**: After code-reviewer passes, for complex business logic
+- **commit-preparer**: Before creating commits (especially multi-file changes)
+- **refactor-planner**: Periodically or when code-reviewer finds recurring patterns
+
 ### Planning
 
 **Context-dependent** approach:
 - Simple tasks: Just do it
-- Complex tasks: Plan thoroughly, outline approach first
+- Complex tasks: Use `architect` agent first, then plan thoroughly
 
 ### Feature Development
 
 1. Understand requirements fully
-2. Check existing patterns in codebase
-3. Implement with tests for complex logic
-4. Clean up adjacent code if touching it
-5. Atomic commits with clear messages
+2. Run `architect` agent for non-trivial features
+3. Check existing patterns in codebase
+4. Use `sql-writer` / `api-designer` during implementation as needed
+5. Run `code-reviewer` after implementation
+6. Run `a11y-auditor` if UI was changed
+7. Run `test-writer` for complex logic
+8. Run `commit-preparer` before committing
+9. Atomic commits with clear messages
 
 ### Code Generation
 
