@@ -12,8 +12,8 @@ RUN apk add --no-cache python3 make g++ sqlite nodejs npm && \
 FROM base AS deps
 WORKDIR /app
 
-COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile
+COPY package.json bun.lock* package-lock.json* ./
+RUN bun install
 
 # =============================================================================
 # Stage 2: Builder
