@@ -56,15 +56,20 @@ export interface RevenueMetrics {
 
 export async function getRevenueMetrics(
   organizationId: string,
-  month?: number,
-  year?: number
+  startMonth?: number,
+  startYear?: number,
+  endMonth?: number,
+  endYear?: number
 ): Promise<RevenueMetrics> {
   const db = getDb();
   const currentDate = now();
-  const targetMonth = month ? month - 1 : currentDate.getMonth();
-  const targetYear = year ?? currentDate.getFullYear();
-  const firstOfMonth = new Date(targetYear, targetMonth, 1);
-  const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
+  // Default to current month if not specified
+  const sMonth = startMonth ? startMonth - 1 : currentDate.getMonth();
+  const sYear = startYear ?? currentDate.getFullYear();
+  const eMonth = endMonth ? endMonth - 1 : sMonth;
+  const eYear = endYear ?? sYear;
+  const firstOfMonth = new Date(sYear, sMonth, 1);
+  const lastOfMonth = new Date(eYear, eMonth + 1, 0);
 
   // Get all payments for current month for this organization
   const payments = await db
@@ -127,15 +132,19 @@ export interface MaintenanceMetrics {
 
 export async function getMaintenanceMetrics(
   organizationId: string,
-  month?: number,
-  year?: number
+  startMonth?: number,
+  startYear?: number,
+  endMonth?: number,
+  endYear?: number
 ): Promise<MaintenanceMetrics> {
   const db = getDb();
   const currentDate = now();
-  const targetMonth = month ? month - 1 : currentDate.getMonth();
-  const targetYear = year ?? currentDate.getFullYear();
-  const firstOfMonth = new Date(targetYear, targetMonth, 1);
-  const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
+  const sMonth = startMonth ? startMonth - 1 : currentDate.getMonth();
+  const sYear = startYear ?? currentDate.getFullYear();
+  const eMonth = endMonth ? endMonth - 1 : sMonth;
+  const eYear = endYear ?? sYear;
+  const firstOfMonth = new Date(sYear, sMonth, 1);
+  const lastOfMonth = new Date(eYear, eMonth + 1, 0);
 
   const requests = await db
     .select({
@@ -281,15 +290,19 @@ export interface ApplicationMetrics {
 
 export async function getApplicationMetrics(
   organizationId: string,
-  month?: number,
-  year?: number
+  startMonth?: number,
+  startYear?: number,
+  endMonth?: number,
+  endYear?: number
 ): Promise<ApplicationMetrics> {
   const db = getDb();
   const currentDate = now();
-  const targetMonth = month ? month - 1 : currentDate.getMonth();
-  const targetYear = year ?? currentDate.getFullYear();
-  const firstOfMonth = new Date(targetYear, targetMonth, 1);
-  const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
+  const sMonth = startMonth ? startMonth - 1 : currentDate.getMonth();
+  const sYear = startYear ?? currentDate.getFullYear();
+  const eMonth = endMonth ? endMonth - 1 : sMonth;
+  const eYear = endYear ?? sYear;
+  const firstOfMonth = new Date(sYear, sMonth, 1);
+  const lastOfMonth = new Date(eYear, eMonth + 1, 0);
 
   const allApps = await db
     .select({
@@ -352,22 +365,25 @@ export interface MonthlyRevenueData {
 
 export async function getRevenueHistory(
   organizationId: string,
-  months: number = 6,
+  startMonth?: number,
+  startYear?: number,
   endMonth?: number,
   endYear?: number
 ): Promise<MonthlyRevenueData[]> {
   const db = getDb();
   const currentDate = now();
 
-  // Use provided month/year as the end point, or default to current
-  const targetEndMonth = endMonth ? endMonth - 1 : currentDate.getMonth();
-  const targetEndYear = endYear ?? currentDate.getFullYear();
+  // Use provided dates or default to current month
+  const sMonth = startMonth ? startMonth - 1 : currentDate.getMonth();
+  const sYear = startYear ?? currentDate.getFullYear();
+  const eMonth = endMonth ? endMonth - 1 : sMonth;
+  const eYear = endYear ?? sYear;
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  // Calculate date range for all months
-  const endDate = new Date(targetEndYear, targetEndMonth + 1, 0, 23, 59, 59);
-  const startDate = new Date(targetEndYear, targetEndMonth - months + 1, 1);
+  // Calculate date range
+  const startDate = new Date(sYear, sMonth, 1);
+  const endDate = new Date(eYear, eMonth + 1, 0, 23, 59, 59);
 
   // Fetch all payments in the date range with one query
   const allPayments = await db
@@ -400,18 +416,22 @@ export async function getRevenueHistory(
     paymentsByMonth.set(key, existing);
   }
 
-  // Build result array
+  // Build result array - iterate through months in range
   const result: MonthlyRevenueData[] = [];
-  for (let i = months - 1; i >= 0; i--) {
-    const targetDate = new Date(targetEndYear, targetEndMonth - i, 1);
-    const key = `${targetDate.getFullYear()}-${targetDate.getMonth()}`;
+  let current = new Date(sYear, sMonth, 1);
+  const end = new Date(eYear, eMonth, 1);
+
+  while (current <= end) {
+    const key = `${current.getFullYear()}-${current.getMonth()}`;
     const data = paymentsByMonth.get(key) || { expected: 0, collected: 0 };
 
     result.push({
-      month: monthNames[targetDate.getMonth()],
+      month: monthNames[current.getMonth()],
       expected: data.expected,
       collected: data.collected,
     });
+
+    current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
   }
 
   return result;
@@ -430,16 +450,18 @@ export interface DashboardReport {
 
 export async function getDashboardReport(
   organizationId: string,
-  month?: number,
-  year?: number
+  startMonth?: number,
+  startYear?: number,
+  endMonth?: number,
+  endYear?: number
 ): Promise<DashboardReport> {
   const [occupancy, revenue, maintenance, leaseMetrics, applicationMetrics] =
     await Promise.all([
       getOccupancyMetrics(organizationId),
-      getRevenueMetrics(organizationId, month, year),
-      getMaintenanceMetrics(organizationId, month, year),
+      getRevenueMetrics(organizationId, startMonth, startYear, endMonth, endYear),
+      getMaintenanceMetrics(organizationId, startMonth, startYear, endMonth, endYear),
       getLeaseMetrics(organizationId),
-      getApplicationMetrics(organizationId, month, year),
+      getApplicationMetrics(organizationId, startMonth, startYear, endMonth, endYear),
     ]);
 
   return {

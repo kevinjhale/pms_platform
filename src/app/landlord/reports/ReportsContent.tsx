@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CardSizeProvider, CardSizeToggle, useCardSize } from "@/components/CardSizeToggle";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
-import { MonthYearSelector } from "@/components/MonthYearSelector";
+import { DateRangeSelector } from "@/components/MonthYearSelector";
 import {
   RevenueChart,
   PaymentStatusChart,
@@ -46,9 +46,11 @@ interface ReportsContentProps {
   monthlyPayments: MonthlyPaymentSummary[];
   currentYear: number;
   organizationName: string;
-  currentMonth: string;
-  selectedMonth: number;
-  selectedYear: number;
+  dateRangeLabel: string;
+  startMonth: number;
+  startYear: number;
+  endMonth: number;
+  endYear: number;
 }
 
 function centsToDollars(cents: number): number {
@@ -105,9 +107,11 @@ function ReportsContentInner({
   monthlyPayments,
   currentYear,
   organizationName,
-  currentMonth,
-  selectedMonth,
-  selectedYear,
+  dateRangeLabel,
+  startMonth,
+  startYear,
+  endMonth,
+  endYear,
 }: ReportsContentProps) {
   const { size } = useCardSize();
   const isCompact = size === 'compact';
@@ -185,14 +189,16 @@ function ReportsContentInner({
           <div>
             <h1 style={{ fontSize: isCompact ? '1.75rem' : '2.5rem', fontWeight: 'bold' }}>Reports & Analytics</h1>
             <p style={{ color: 'var(--secondary)', fontSize: labelFontSize }}>
-              Key metrics for {organizationName} - {currentMonth}
+              Key metrics for {organizationName} - {dateRangeLabel}
             </p>
           </div>
           <CardSizeToggle />
         </div>
-        <MonthYearSelector
-          currentMonth={selectedMonth}
-          currentYear={selectedYear}
+        <DateRangeSelector
+          startMonth={startMonth}
+          startYear={startYear}
+          endMonth={endMonth}
+          endYear={endYear}
           isCompact={isCompact}
         />
       </div>
@@ -279,7 +285,7 @@ function ReportsContentInner({
       </CollapsibleSection>
 
       {/* Revenue Section */}
-      <CollapsibleSection title={`Revenue - ${currentMonth}`} storageKey="reports-revenue" isCompact={isCompact}>
+      <CollapsibleSection title={`Revenue - ${dateRangeLabel}`} storageKey="reports-revenue" isCompact={isCompact}>
         <div
           style={{
             display: 'grid',
@@ -546,7 +552,7 @@ function ReportsContentInner({
       </div>
 
       {/* Applications Section */}
-      <CollapsibleSection title={`Applications - ${currentMonth}`} storageKey="reports-applications" isCompact={isCompact}>
+      <CollapsibleSection title={`Applications - ${dateRangeLabel}`} storageKey="reports-applications" isCompact={isCompact}>
         <div
           style={{
             display: 'grid',

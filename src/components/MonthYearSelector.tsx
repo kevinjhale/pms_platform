@@ -3,187 +3,221 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 
-interface MonthYearSelectorProps {
-  currentMonth: number;
-  currentYear: number;
+interface DateRangeSelectorProps {
+  startMonth: number;
+  startYear: number;
+  endMonth: number;
+  endYear: number;
   isCompact?: boolean;
 }
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
 
-export function MonthYearSelector({ currentMonth, currentYear, isCompact = false }: MonthYearSelectorProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Generate available years (past 2 years to current)
+// Generate list of month-year options for past 24 months
+function generateMonthOptions(): { value: string; label: string; month: number; year: number }[] {
   const now = new Date();
-  const years: number[] = [];
-  for (let y = now.getFullYear() - 2; y <= now.getFullYear(); y++) {
-    years.push(y);
+  const options: { value: string; label: string; month: number; year: number }[] = [];
+
+  for (let i = 0; i < 24; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    options.push({
+      value: `${year}-${month}`,
+      label: `${MONTHS[month - 1]} ${year}`,
+      month,
+      year,
+    });
   }
 
-  const handleChange = useCallback((month: number, year: number) => {
+  return options;
+}
+
+export function DateRangeSelector({
+  startMonth,
+  startYear,
+  endMonth,
+  endYear,
+  isCompact = false,
+}: DateRangeSelectorProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const monthOptions = generateMonthOptions();
+
+  const handleChange = useCallback((
+    newStartMonth: number,
+    newStartYear: number,
+    newEndMonth: number,
+    newEndYear: number
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('month', String(month));
-    params.set('year', String(year));
+    params.set('startMonth', String(newStartMonth));
+    params.set('startYear', String(newStartYear));
+    params.set('endMonth', String(newEndMonth));
+    params.set('endYear', String(newEndYear));
     router.push(`?${params.toString()}`);
   }, [router, searchParams]);
 
-  const handlePrev = useCallback(() => {
-    let newMonth = currentMonth - 1;
-    let newYear = currentYear;
-    if (newMonth < 1) {
-      newMonth = 12;
-      newYear = currentYear - 1;
+  const handleStartChange = useCallback((value: string) => {
+    const [year, month] = value.split('-').map(Number);
+    // If start is after end, set end to start
+    const startDate = new Date(year, month - 1);
+    const endDate = new Date(endYear, endMonth - 1);
+    if (startDate > endDate) {
+      handleChange(month, year, month, year);
+    } else {
+      handleChange(month, year, endMonth, endYear);
     }
-    // Don't go before 2 years ago
-    const minYear = now.getFullYear() - 2;
-    if (newYear >= minYear) {
-      handleChange(newMonth, newYear);
-    }
-  }, [currentMonth, currentYear, handleChange]);
+  }, [endMonth, endYear, handleChange]);
 
-  const handleNext = useCallback(() => {
-    let newMonth = currentMonth + 1;
-    let newYear = currentYear;
-    if (newMonth > 12) {
-      newMonth = 1;
-      newYear = currentYear + 1;
+  const handleEndChange = useCallback((value: string) => {
+    const [year, month] = value.split('-').map(Number);
+    // If end is before start, set start to end
+    const startDate = new Date(startYear, startMonth - 1);
+    const endDate = new Date(year, month - 1);
+    if (endDate < startDate) {
+      handleChange(month, year, month, year);
+    } else {
+      handleChange(startMonth, startYear, month, year);
     }
-    // Don't go beyond current month
-    const maxDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const selectedDate = new Date(newYear, newMonth - 1, 1);
-    if (selectedDate <= maxDate) {
-      handleChange(newMonth, newYear);
-    }
-  }, [currentMonth, currentYear, handleChange]);
+  }, [startMonth, startYear, handleChange]);
 
   const handleReset = useCallback(() => {
     router.push('?');
   }, [router]);
 
-  // Check if we're at the current month
-  const isCurrentMonth = currentMonth === now.getMonth() + 1 && currentYear === now.getFullYear();
+  // Check if we're at the current month (default state)
+  const now = new Date();
+  const isDefault = startMonth === now.getMonth() + 1 &&
+                    startYear === now.getFullYear() &&
+                    endMonth === now.getMonth() + 1 &&
+                    endYear === now.getFullYear();
 
-  // Check boundaries
-  const minYear = now.getFullYear() - 2;
-  const canGoPrev = currentYear > minYear || currentMonth > 1;
-  const canGoNext = !isCurrentMonth;
+  const isSingleMonth = startMonth === endMonth && startYear === endYear;
 
   const selectStyle = {
-    padding: isCompact ? '0.25rem 0.5rem' : '0.5rem 0.75rem',
+    padding: isCompact ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
     fontSize: isCompact ? '0.75rem' : '0.875rem',
     borderRadius: '4px',
     border: '1px solid var(--border)',
     backgroundColor: 'var(--background)',
     cursor: 'pointer',
     outline: 'none',
+    minWidth: isCompact ? '100px' : '120px',
+  };
+
+  const labelStyle = {
+    fontSize: isCompact ? '0.7rem' : '0.75rem',
+    color: 'var(--secondary)',
+    marginRight: '0.25rem',
   };
 
   const buttonStyle = {
-    padding: isCompact ? '0.25rem 0.5rem' : '0.5rem 0.75rem',
-    fontSize: isCompact ? '0.875rem' : '1rem',
+    padding: isCompact ? '0.375rem 0.625rem' : '0.5rem 0.75rem',
+    fontSize: isCompact ? '0.75rem' : '0.875rem',
     borderRadius: '4px',
     border: '1px solid var(--border)',
     backgroundColor: 'var(--background)',
     cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
   };
 
+  // Quick presets
+  const setLastNMonths = useCallback((n: number) => {
+    const end = new Date();
+    const start = new Date(end.getFullYear(), end.getMonth() - n + 1, 1);
+    handleChange(
+      start.getMonth() + 1,
+      start.getFullYear(),
+      end.getMonth() + 1,
+      end.getFullYear()
+    );
+  }, [handleChange]);
+
+  const setYTD = useCallback(() => {
+    const now = new Date();
+    handleChange(1, now.getFullYear(), now.getMonth() + 1, now.getFullYear());
+  }, [handleChange]);
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: isCompact ? '0.5rem' : '0.75rem', flexWrap: 'wrap' }}>
-      <button
-        onClick={handlePrev}
-        disabled={!canGoPrev}
-        style={{
-          ...buttonStyle,
-          opacity: canGoPrev ? 1 : 0.4,
-          cursor: canGoPrev ? 'pointer' : 'not-allowed',
-        }}
-        aria-label="Previous month"
-      >
-        ←
-      </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.5rem' : '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isCompact ? '0.75rem' : '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={labelStyle}>From:</span>
+          <select
+            value={`${startYear}-${startMonth}`}
+            onChange={(e) => handleStartChange(e.target.value)}
+            style={selectStyle}
+            aria-label="Start month"
+          >
+            {monthOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <select
-        value={currentMonth}
-        onChange={(e) => handleChange(Number(e.target.value), currentYear)}
-        style={selectStyle}
-        aria-label="Select month"
-      >
-        {MONTHS.map((month, idx) => {
-          // Disable future months in current year
-          const isDisabled = currentYear === now.getFullYear() && idx + 1 > now.getMonth() + 1;
-          return (
-            <option key={month} value={idx + 1} disabled={isDisabled}>
-              {month}
-            </option>
-          );
-        })}
-      </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={labelStyle}>To:</span>
+          <select
+            value={`${endYear}-${endMonth}`}
+            onChange={(e) => handleEndChange(e.target.value)}
+            style={selectStyle}
+            aria-label="End month"
+          >
+            {monthOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <select
-        value={currentYear}
-        onChange={(e) => {
-          const newYear = Number(e.target.value);
-          // If switching to current year and current month is beyond available, reset to current month
-          let newMonth = currentMonth;
-          if (newYear === now.getFullYear() && currentMonth > now.getMonth() + 1) {
-            newMonth = now.getMonth() + 1;
-          }
-          handleChange(newMonth, newYear);
-        }}
-        style={selectStyle}
-        aria-label="Select year"
-      >
-        {years.map((year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        ))}
-      </select>
+        {!isDefault && (
+          <button
+            onClick={handleReset}
+            style={{
+              ...buttonStyle,
+              backgroundColor: 'var(--accent)',
+              color: 'white',
+              border: 'none',
+            }}
+          >
+            Reset
+          </button>
+        )}
+      </div>
 
-      <button
-        onClick={handleNext}
-        disabled={!canGoNext}
-        style={{
-          ...buttonStyle,
-          opacity: canGoNext ? 1 : 0.4,
-          cursor: canGoNext ? 'pointer' : 'not-allowed',
-        }}
-        aria-label="Next month"
-      >
-        →
-      </button>
+      {/* Quick presets */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ ...labelStyle, marginRight: '0.25rem' }}>Quick:</span>
+        <button onClick={() => setLastNMonths(1)} style={buttonStyle}>This Month</button>
+        <button onClick={() => setLastNMonths(3)} style={buttonStyle}>Last 3 Mo</button>
+        <button onClick={() => setLastNMonths(6)} style={buttonStyle}>Last 6 Mo</button>
+        <button onClick={() => setLastNMonths(12)} style={buttonStyle}>Last 12 Mo</button>
+        <button onClick={setYTD} style={buttonStyle}>YTD</button>
+      </div>
 
-      {!isCurrentMonth && (
-        <button
-          onClick={handleReset}
-          style={{
-            ...buttonStyle,
-            backgroundColor: 'var(--accent)',
-            color: 'white',
-            border: 'none',
-            fontSize: isCompact ? '0.7rem' : '0.75rem',
-            padding: isCompact ? '0.25rem 0.5rem' : '0.375rem 0.625rem',
-          }}
-        >
-          Current
-        </button>
-      )}
-
-      <span style={{
+      {/* Date range summary */}
+      <div style={{
         fontSize: isCompact ? '0.7rem' : '0.75rem',
         color: 'var(--secondary)',
-        marginLeft: isCompact ? '0.25rem' : '0.5rem',
+        padding: '0.25rem 0.5rem',
+        backgroundColor: 'var(--surface)',
+        borderRadius: '4px',
+        display: 'inline-block',
+        width: 'fit-content',
       }}>
-        {isCurrentMonth ? '(Current)' : '(Historical)'}
-      </span>
+        {isSingleMonth
+          ? `Showing: ${MONTHS[startMonth - 1]} ${startYear}`
+          : `Showing: ${MONTHS[startMonth - 1]} ${startYear} - ${MONTHS[endMonth - 1]} ${endYear}`}
+      </div>
     </div>
   );
 }
+
+// Keep backward compatibility alias
+export { DateRangeSelector as MonthYearSelector };

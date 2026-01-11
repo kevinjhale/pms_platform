@@ -5,8 +5,15 @@ import { getRentRoll, calculateRentRollTotals, getMonthlyPayments } from "@/serv
 import ReportsContent from "./ReportsContent";
 
 interface PageProps {
-  searchParams: Promise<{ month?: string; year?: string }>;
+  searchParams: Promise<{
+    startMonth?: string;
+    startYear?: string;
+    endMonth?: string;
+    endYear?: string;
+  }>;
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default async function ReportsPage({ searchParams }: PageProps) {
   const { organization } = await getOrgContext();
@@ -15,29 +22,41 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     redirect("/onboarding");
   }
 
-  // Get the search params (await since it's a Promise in Next.js 15+)
   const params = await searchParams;
-
-  // Parse month/year from URL params or default to current
   const now = new Date();
-  const selectedMonth = params.month ? parseInt(params.month, 10) : now.getMonth() + 1;
-  const selectedYear = params.year ? parseInt(params.year, 10) : now.getFullYear();
 
-  // Validate month/year
-  const validMonth = Math.max(1, Math.min(12, selectedMonth));
-  const validYear = Math.max(now.getFullYear() - 2, Math.min(now.getFullYear(), selectedYear));
+  // Parse start/end dates from URL params or default to current month
+  const startMonth = params.startMonth ? parseInt(params.startMonth, 10) : now.getMonth() + 1;
+  const startYear = params.startYear ? parseInt(params.startYear, 10) : now.getFullYear();
+  const endMonth = params.endMonth ? parseInt(params.endMonth, 10) : now.getMonth() + 1;
+  const endYear = params.endYear ? parseInt(params.endYear, 10) : now.getFullYear();
+
+  // Validate dates
+  const minYear = now.getFullYear() - 2;
+  const validStartMonth = Math.max(1, Math.min(12, startMonth));
+  const validStartYear = Math.max(minYear, Math.min(now.getFullYear(), startYear));
+  const validEndMonth = Math.max(1, Math.min(12, endMonth));
+  const validEndYear = Math.max(minYear, Math.min(now.getFullYear(), endYear));
+
+  // Ensure end is not before start
+  const startDate = new Date(validStartYear, validStartMonth - 1);
+  const endDate = new Date(validEndYear, validEndMonth - 1);
+  const finalEndMonth = endDate < startDate ? validStartMonth : validEndMonth;
+  const finalEndYear = endDate < startDate ? validStartYear : validEndYear;
 
   const [report, revenueHistory, rentRoll, monthlyPayments] = await Promise.all([
-    getDashboardReport(organization.id, validMonth, validYear),
-    getRevenueHistory(organization.id, 6, validMonth, validYear),
+    getDashboardReport(organization.id, validStartMonth, validStartYear, finalEndMonth, finalEndYear),
+    getRevenueHistory(organization.id, validStartMonth, validStartYear, finalEndMonth, finalEndYear),
     getRentRoll(organization.id),
-    getMonthlyPayments(organization.id, validYear),
+    getMonthlyPayments(organization.id, finalEndYear),
   ]);
   const rentRollTotals = calculateRentRollTotals(rentRoll);
 
-  // Format the display month
-  const displayDate = new Date(validYear, validMonth - 1);
-  const currentMonth = displayDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  // Format the date range label
+  const isSingleMonth = validStartMonth === finalEndMonth && validStartYear === finalEndYear;
+  const dateRangeLabel = isSingleMonth
+    ? `${MONTHS[validStartMonth - 1]} ${validStartYear}`
+    : `${MONTHS[validStartMonth - 1]} ${validStartYear} - ${MONTHS[finalEndMonth - 1]} ${finalEndYear}`;
 
   return (
     <ReportsContent
@@ -46,11 +65,13 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       rentRoll={rentRoll}
       rentRollTotals={rentRollTotals}
       monthlyPayments={monthlyPayments}
-      currentYear={validYear}
+      currentYear={finalEndYear}
       organizationName={organization.name}
-      currentMonth={currentMonth}
-      selectedMonth={validMonth}
-      selectedYear={validYear}
+      dateRangeLabel={dateRangeLabel}
+      startMonth={validStartMonth}
+      startYear={validStartYear}
+      endMonth={finalEndMonth}
+      endYear={finalEndYear}
     />
   );
 }
