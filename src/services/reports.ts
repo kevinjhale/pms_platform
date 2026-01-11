@@ -55,12 +55,16 @@ export interface RevenueMetrics {
 }
 
 export async function getRevenueMetrics(
-  organizationId: string
+  organizationId: string,
+  month?: number,
+  year?: number
 ): Promise<RevenueMetrics> {
   const db = getDb();
   const currentDate = now();
-  const firstOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-  const lastOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const targetMonth = month ? month - 1 : currentDate.getMonth();
+  const targetYear = year ?? currentDate.getFullYear();
+  const firstOfMonth = new Date(targetYear, targetMonth, 1);
+  const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
 
   // Get all payments for current month for this organization
   const payments = await db
@@ -122,11 +126,16 @@ export interface MaintenanceMetrics {
 }
 
 export async function getMaintenanceMetrics(
-  organizationId: string
+  organizationId: string,
+  month?: number,
+  year?: number
 ): Promise<MaintenanceMetrics> {
   const db = getDb();
   const currentDate = now();
-  const firstOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const targetMonth = month ? month - 1 : currentDate.getMonth();
+  const targetYear = year ?? currentDate.getFullYear();
+  const firstOfMonth = new Date(targetYear, targetMonth, 1);
+  const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
 
   const requests = await db
     .select({
@@ -149,7 +158,8 @@ export async function getMaintenanceMetrics(
   ).length;
 
   const completedThisMonth = requests.filter(
-    (r) => r.status === "completed" && r.completedAt && r.completedAt >= firstOfMonth
+    (r) => r.status === "completed" && r.completedAt &&
+           r.completedAt >= firstOfMonth && r.completedAt <= lastOfMonth
   ).length;
 
   // Calculate average completion time for completed requests
@@ -270,11 +280,16 @@ export interface ApplicationMetrics {
 }
 
 export async function getApplicationMetrics(
-  organizationId: string
+  organizationId: string,
+  month?: number,
+  year?: number
 ): Promise<ApplicationMetrics> {
   const db = getDb();
   const currentDate = now();
-  const firstOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const targetMonth = month ? month - 1 : currentDate.getMonth();
+  const targetYear = year ?? currentDate.getFullYear();
+  const firstOfMonth = new Date(targetYear, targetMonth, 1);
+  const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
 
   const allApps = await db
     .select({
@@ -292,11 +307,13 @@ export async function getApplicationMetrics(
   ).length;
 
   const approvedThisMonth = allApps.filter(
-    (a) => a.status === "approved" && a.decidedAt && a.decidedAt >= firstOfMonth
+    (a) => a.status === "approved" && a.decidedAt &&
+           a.decidedAt >= firstOfMonth && a.decidedAt <= lastOfMonth
   ).length;
 
   const rejectedThisMonth = allApps.filter(
-    (a) => a.status === "rejected" && a.decidedAt && a.decidedAt >= firstOfMonth
+    (a) => a.status === "rejected" && a.decidedAt &&
+           a.decidedAt >= firstOfMonth && a.decidedAt <= lastOfMonth
   ).length;
 
   // Calculate average processing time
@@ -335,16 +352,22 @@ export interface MonthlyRevenueData {
 
 export async function getRevenueHistory(
   organizationId: string,
-  months: number = 6
+  months: number = 6,
+  endMonth?: number,
+  endYear?: number
 ): Promise<MonthlyRevenueData[]> {
   const db = getDb();
   const currentDate = now();
   const result: MonthlyRevenueData[] = [];
 
+  // Use provided month/year as the end point, or default to current
+  const targetEndMonth = endMonth ? endMonth - 1 : currentDate.getMonth();
+  const targetEndYear = endYear ?? currentDate.getFullYear();
+
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   for (let i = months - 1; i >= 0; i--) {
-    const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+    const targetDate = new Date(targetEndYear, targetEndMonth - i, 1);
     const firstOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
     const lastOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
 
@@ -396,15 +419,17 @@ export interface DashboardReport {
 }
 
 export async function getDashboardReport(
-  organizationId: string
+  organizationId: string,
+  month?: number,
+  year?: number
 ): Promise<DashboardReport> {
   const [occupancy, revenue, maintenance, leaseMetrics, applicationMetrics] =
     await Promise.all([
       getOccupancyMetrics(organizationId),
-      getRevenueMetrics(organizationId),
-      getMaintenanceMetrics(organizationId),
+      getRevenueMetrics(organizationId, month, year),
+      getMaintenanceMetrics(organizationId, month, year),
       getLeaseMetrics(organizationId),
-      getApplicationMetrics(organizationId),
+      getApplicationMetrics(organizationId, month, year),
     ]);
 
   return {

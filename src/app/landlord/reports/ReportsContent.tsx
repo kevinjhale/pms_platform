@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CardSizeProvider, CardSizeToggle, useCardSize } from "@/components/CardSizeToggle";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { MonthYearSelector } from "@/components/MonthYearSelector";
 import {
   RevenueChart,
   PaymentStatusChart,
@@ -46,6 +47,8 @@ interface ReportsContentProps {
   currentYear: number;
   organizationName: string;
   currentMonth: string;
+  selectedMonth: number;
+  selectedYear: number;
 }
 
 function centsToDollars(cents: number): number {
@@ -103,6 +106,8 @@ function ReportsContentInner({
   currentYear,
   organizationName,
   currentMonth,
+  selectedMonth,
+  selectedYear,
 }: ReportsContentProps) {
   const { size } = useCardSize();
   const isCompact = size === 'compact';
@@ -175,14 +180,21 @@ function ReportsContentInner({
 
   return (
     <main className="container" style={{ paddingTop: isCompact ? '2rem' : '4rem', paddingBottom: isCompact ? '2rem' : '4rem' }}>
-      <div style={{ marginBottom: isCompact ? '1rem' : '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: isCompact ? '1.75rem' : '2.5rem', fontWeight: 'bold' }}>Reports & Analytics</h1>
-          <p style={{ color: 'var(--secondary)', fontSize: labelFontSize }}>
-            Key metrics for {organizationName} - {currentMonth}
-          </p>
+      <div style={{ marginBottom: isCompact ? '1rem' : '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: isCompact ? '0.5rem' : '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: isCompact ? '1.75rem' : '2.5rem', fontWeight: 'bold' }}>Reports & Analytics</h1>
+            <p style={{ color: 'var(--secondary)', fontSize: labelFontSize }}>
+              Key metrics for {organizationName} - {currentMonth}
+            </p>
+          </div>
+          <CardSizeToggle />
         </div>
-        <CardSizeToggle />
+        <MonthYearSelector
+          currentMonth={selectedMonth}
+          currentYear={selectedYear}
+          isCompact={isCompact}
+        />
       </div>
 
       {/* Occupancy Section */}

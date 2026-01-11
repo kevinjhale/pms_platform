@@ -634,9 +634,9 @@ async function seed() {
   console.log(`  Created ${leaseChargesData.length} lease charges`);
 
   // ========================================
-  // RENT PAYMENTS (historical + current)
+  // RENT PAYMENTS (24 months of historical data)
   // ========================================
-  console.log('\nCreating rent payments...');
+  console.log('\nCreating rent payments (24 months of history)...');
 
   // Helper to get month start/end
   const getMonthBounds = (monthsAgo: number) => {
@@ -656,9 +656,22 @@ async function seed() {
   // Payment methods to vary the data
   const paymentMethods: Array<'ach' | 'check' | 'card' | 'cash'> = ['ach', 'check', 'card', 'cash'];
 
-  // Create 6 months of historical payments for each lease
+  // Extended lease history - simulate that some leases started earlier for historical data
+  const leaseHistoryMonths: Record<string, number> = {
+    'lease-1': 24,  // Alice has been here 2 years
+    'lease-2': 18,  // Bob for 18 months
+    'lease-3': 24,  // Carol for 2 years
+    'lease-4': 12,  // David for 1 year
+    'lease-5': 20,  // Emma for 20 months
+    'lease-6': 24,  // Frank for 2 years
+    'lease-7': 15,  // Grace for 15 months
+    'lease-8': 24,  // Henry for 2 years (has issues)
+    'lease-9': 18,  // Iris for 18 months
+  };
+
+  // Create 24 months of historical payments for each lease
   for (const lease of leasesData) {
-    const monthsOfHistory = Math.min(6, Math.floor(lease.startDaysAgo / 30));
+    const monthsOfHistory = leaseHistoryMonths[lease.id] || Math.min(24, Math.floor(lease.startDaysAgo / 30));
 
     for (let monthsAgo = 0; monthsAgo <= monthsOfHistory; monthsAgo++) {
       const paymentId = `payment-${lease.id}-m${monthsAgo}`;
@@ -669,21 +682,31 @@ async function seed() {
         const dueDate = new Date(periodStart);
         dueDate.setDate(1);
 
-        // Vary payment status - mostly paid, some late, one partial
+        // Vary payment status - mostly paid, some late, some partial
         let status: 'paid' | 'late' | 'partial' | 'due' = 'paid';
         let amountPaid = dollarsToCents(lease.rent);
         let lateFee = 0;
         let paidAt: Date | null = new Date(periodStart);
         paidAt.setDate(3 + Math.floor(Math.random() * 5)); // Paid between 3rd-7th
 
-        // Add variety - one late payment, one partial
-        if (monthsAgo === 3 && lease.id === 'lease-2') {
+        // Add variety for realistic data
+        // Late payments scattered through history
+        const isLateMonth = (monthsAgo % 7 === 3 && lease.id === 'lease-2') ||
+                          (monthsAgo % 11 === 5 && lease.id === 'lease-8') ||
+                          (monthsAgo === 14 && lease.id === 'lease-5');
+
+        // Partial payments occasionally
+        const isPartialMonth = (monthsAgo % 9 === 2 && lease.id === 'lease-7') ||
+                              (monthsAgo === 8 && lease.id === 'lease-8') ||
+                              (monthsAgo === 16 && lease.id === 'lease-3');
+
+        if (isLateMonth) {
           status = 'late';
           lateFee = dollarsToCents(50);
-          paidAt.setDate(12); // Paid late on the 12th
-        } else if (monthsAgo === 2 && lease.id === 'lease-7') {
+          paidAt.setDate(12 + Math.floor(Math.random() * 5)); // Paid late
+        } else if (isPartialMonth) {
           status = 'partial';
-          amountPaid = dollarsToCents(lease.rent * 0.5);
+          amountPaid = dollarsToCents(lease.rent * (0.4 + Math.random() * 0.3)); // 40-70% paid
         } else if (monthsAgo === 0) {
           // Current month - some not yet paid
           if (lease.id === 'lease-8') {
@@ -716,7 +739,7 @@ async function seed() {
   // ========================================
   // PAYMENT LINE ITEMS (breakdown by category)
   // ========================================
-  console.log('\nCreating payment line items...');
+  console.log('\nCreating payment line items (24 months)...');
 
   // Build a map of lease charges per lease
   const chargesByLease = new Map<string, typeof leaseChargesData>();
@@ -730,19 +753,22 @@ async function seed() {
   // Create line items for each payment
   let lineItemCount = 0;
   for (const lease of leasesData) {
-    const monthsOfHistory = Math.min(6, Math.floor(lease.startDaysAgo / 30));
+    const monthsOfHistory = leaseHistoryMonths[lease.id] || Math.min(24, Math.floor(lease.startDaysAgo / 30));
     const charges = chargesByLease.get(lease.id) || [];
 
     for (let monthsAgo = 0; monthsAgo <= monthsOfHistory; monthsAgo++) {
       const paymentId = `payment-${lease.id}-m${monthsAgo}`;
       const { start: periodStart } = getMonthBounds(monthsAgo);
 
-      // Determine if this payment was paid
+      // Determine if this payment was paid (matching rent payments logic)
       let paymentPaid = true;
       let partialPayment = false;
+      const isPartialMonth = (monthsAgo % 9 === 2 && lease.id === 'lease-7') ||
+                            (monthsAgo === 8 && lease.id === 'lease-8') ||
+                            (monthsAgo === 16 && lease.id === 'lease-3');
       if (monthsAgo === 0 && lease.id === 'lease-8') {
         paymentPaid = false;
-      } else if (monthsAgo === 2 && lease.id === 'lease-7') {
+      } else if (isPartialMonth) {
         partialPayment = true;
       }
 
@@ -794,8 +820,11 @@ async function seed() {
         }
       }
 
-      // Add late fee line item if applicable
-      if (monthsAgo === 3 && lease.id === 'lease-2') {
+      // Add late fee line item if applicable (matching rent payments logic)
+      const isLateMonth = (monthsAgo % 7 === 3 && lease.id === 'lease-2') ||
+                        (monthsAgo % 11 === 5 && lease.id === 'lease-8') ||
+                        (monthsAgo === 14 && lease.id === 'lease-5');
+      if (isLateMonth) {
         const lateFeeLineItemId = `line-${paymentId}-late_fee`;
         const existingLateLine = await db.select().from(paymentLineItems).where(eq(paymentLineItems.id, lateFeeLineItemId)).limit(1);
         if (existingLateLine.length === 0) {
