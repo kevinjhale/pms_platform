@@ -1,6 +1,13 @@
-
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
+
+const navLinkStyle = {
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    color: 'var(--secondary)',
+    textDecoration: 'none',
+    transition: 'color 0.2s',
+};
 
 export default async function Navbar() {
     const session = await auth();
@@ -19,14 +26,12 @@ export default async function Navbar() {
                     PMS <span style={{ color: 'var(--accent)' }}>Platform</span>
                 </Link>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    {session && (
-                        <Link href="/dashboard" style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--secondary)', borderRight: '1px solid var(--border)', paddingRight: '1rem' }}>
-                            Dashboard
-                        </Link>
-                    )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                     {session ? (
                         <>
+                            <Link href="/dashboard" style={navLinkStyle}>
+                                Dashboard
+                            </Link>
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>{session.user?.name}</div>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--secondary)', textTransform: 'capitalize' }}>
@@ -43,9 +48,15 @@ export default async function Navbar() {
                             </form>
                         </>
                     ) : (
-                        <Link href="/login" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-                            Sign In
-                        </Link>
+                        <>
+                            <Link href="/" style={navLinkStyle}>Home</Link>
+                            <Link href="/features" style={navLinkStyle}>Features</Link>
+                            <Link href="/pricing" style={navLinkStyle}>Pricing</Link>
+                            <Link href="/contact" style={navLinkStyle}>Contact Us</Link>
+                            <Link href="/login" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+                                Sign In
+                            </Link>
+                        </>
                     )}
                 </div>
             </div>

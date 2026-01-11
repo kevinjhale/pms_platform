@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-01-10
 
 ## Project Overview
 
@@ -19,14 +19,128 @@ The platform now has:
 - Encrypted credential storage (AES-256-GCM)
 - Photo gallery with lightbox viewer for maintenance tickets
 - Property cards with visible borders and unit counts
-- **NEW: Rent Roll report with transposed table, utility jurisdictions, and monthly breakdown**
-- **NEW: Comprehensive demo data for rent roll testing**
+- Rent Roll report with transposed table, utility jurisdictions, and monthly breakdown
+- Comprehensive demo data for rent roll testing (24 months of payment history)
+- **NEW: Marketing site with Home, Features, Pricing, Contact pages**
+- **NEW: Self-hosted license option ($229) with managed hosting plans**
+- **NEW: Date range selector for reports (start/end month filtering)**
+- **NEW: Optimized reports page (N+1 queries fixed, ~1.2s load time)**
+- **NEW: Unified login (single sign-in for all user types)**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
+- Production deployment on DigitalOcean (halestormsw.com)
 
 ---
 
-## What Was Done This Session (2026-01-09)
+## What Was Done This Session (2026-01-10)
+
+### Marketing Site - Complete Implementation
+
+Built a full marketing site with navigation and multiple pages for public-facing content.
+
+#### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/app/features/page.tsx` | Features page with categorized feature list |
+| `src/app/pricing/page.tsx` | Pricing page with self-hosted license + managed hosting |
+| `src/app/contact/page.tsx` | Contact form with company info |
+
+#### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/components/Navbar.tsx` | Added marketing nav links (Home, Features, Pricing, Contact) for non-logged-in users |
+| `src/app/page.tsx` | Complete redesign with hero, stats, user types, CTA, footer |
+| `src/app/layout.tsx` | Updated site metadata (title, description) |
+
+#### Pricing Structure
+
+**Self-Hosted License** (one-time purchase):
+- $229 one-time payment
+- Full source code access
+- Unlimited units & users
+- All features included
+- Community support via GitHub
+- Updates for current major version
+- $50 to upgrade to any future major version
+
+**Managed Hosting** (monthly):
+- Starter: $0/mo (up to 5 units)
+- Professional: $29/mo (up to 25 units) - Most Popular
+- Enterprise: $79/mo (unlimited units)
+
+---
+
+### Login Simplification
+
+Consolidated the login flow to a single entry point.
+
+#### Changes
+- Removed separate "Renter Login" and "Landlord & Manager Login" cards from homepage
+- Added single "Sign In" button that routes to unified `/login` page
+- Role-based redirect already handled by `/dashboard/page.tsx`:
+  - `renter` → `/renter`
+  - `maintenance` → `/maintenance`
+  - `landlord/manager` → `/landlord`
+
+---
+
+### Reports Page Optimization
+
+Fixed performance issues with the reports dashboard.
+
+#### N+1 Query Fixes
+
+| Service Function | Before | After | Change |
+|-----------------|--------|-------|--------|
+| `getRentRoll()` | 19 queries | 3 queries | Batch fetch with `inArray()` |
+| `getMonthlyPayments()` | 12 queries | 1 query | Single query, group in JS |
+| `getRevenueHistory()` | 6 queries | 1 query | Single query with date range |
+
+**Result**: Page load improved from 10-37 seconds to ~1.2 seconds
+
+#### Date Range Selector
+
+Added flexible date filtering to reports:
+
+| Feature | Implementation |
+|---------|----------------|
+| Start/End dropdowns | Combined month-year selector |
+| Quick presets | This Month, Last 3/6/12 Mo, YTD |
+| URL params | `?startMonth=1&startYear=2025&endMonth=6&endYear=2025` |
+| 24 months history | Seed data extended to cover 24 months |
+
+**Modified Files:**
+- `src/components/MonthYearSelector.tsx` → Rewritten as `DateRangeSelector`
+- `src/services/reports.ts` → All metrics functions accept date range params
+- `src/services/rentRoll.ts` → Optimized queries with batch fetching
+- `src/app/landlord/reports/page.tsx` → URL param handling for date range
+- `scripts/seed-demo-data.ts` → Extended to 24 months of payment history
+
+---
+
+### Docker/Deployment Fixes
+
+Fixed production deployment issues.
+
+| Issue | Fix |
+|-------|-----|
+| `bun install --frozen-lockfile` failing | Changed to `bun install` (without flag) |
+| Seed command failing | Clarified service name is "web" not "app" |
+
+**Deployment commands:**
+```bash
+ssh root@halestormsw.com
+cd /root/pms_platform
+git pull
+docker compose up -d --build
+docker compose exec web npx tsx scripts/seed-demo-data.ts
+```
+
+---
+
+## What Was Done Previous Session (2026-01-09)
 
 ### Rent Roll Report - Complete Implementation
 
