@@ -89,7 +89,7 @@ export default async function RentRollPage() {
     { label: 'Total Monthly', key: 'totalMonthly' },
     { label: 'Security Deposit', key: 'deposit' },
     { label: 'Cleaning Fee', key: 'cleaningFee' },
-    // TODO: Add Pet Fee row - pull from leaseCharges where category === 'pet_fee'
+    { label: 'Pet Fee', key: 'petFee' },
     { label: 'Current Balance', key: 'balance' },
     { label: 'Status', key: 'status' },
     // Dates section
@@ -165,6 +165,9 @@ export default async function RentRollPage() {
         return entry.securityDeposit ? formatCurrency(entry.securityDeposit) : '-';
       case 'cleaningFee':
         return entry.cleaningFee ? formatCurrency(entry.cleaningFee) : '-';
+      case 'petFee':
+        const petCharge = entry.charges.find(c => c.category === 'pet_fee');
+        return petCharge ? formatCurrency(petCharge.amount) : '-';
       case 'balance':
         return (
           <span style={{
