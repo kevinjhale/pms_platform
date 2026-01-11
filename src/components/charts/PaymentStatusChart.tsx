@@ -9,6 +9,7 @@ interface PaymentStatusChartProps {
     delinquent: number;
     eviction: number;
   };
+  height?: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -25,7 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
   eviction: 'Eviction',
 };
 
-export function PaymentStatusChart({ data }: PaymentStatusChartProps) {
+export function PaymentStatusChart({ data, height = 250 }: PaymentStatusChartProps) {
   const chartData = Object.entries(data)
     .filter(([_, value]) => value > 0)
     .map(([status, value]) => ({
@@ -37,7 +38,7 @@ export function PaymentStatusChart({ data }: PaymentStatusChartProps) {
   if (chartData.length === 0) {
     return (
       <div style={{
-        height: 250,
+        height,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -49,7 +50,7 @@ export function PaymentStatusChart({ data }: PaymentStatusChartProps) {
   }
 
   return (
-    <div style={{ width: '100%', height: 250 }}>
+    <div style={{ width: '100%', height }}>
       <ResponsiveContainer>
         <PieChart>
           <Pie

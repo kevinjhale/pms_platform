@@ -6,9 +6,10 @@ interface OccupancyChartProps {
   occupied: number;
   vacant: number;
   occupancyRate: number;
+  height?: number;
 }
 
-export function OccupancyChart({ occupied, vacant, occupancyRate }: OccupancyChartProps) {
+export function OccupancyChart({ occupied, vacant, occupancyRate, height = 200 }: OccupancyChartProps) {
   const data = [
     { name: 'Occupied', value: occupied, color: '#22c55e' },
     { name: 'Vacant', value: vacant, color: '#ef4444' },
@@ -29,7 +30,7 @@ export function OccupancyChart({ occupied, vacant, occupancyRate }: OccupancyCha
   }
 
   return (
-    <div style={{ width: '100%', height: 200, position: 'relative' }}>
+    <div style={{ width: '100%', height, position: 'relative' }}>
       <ResponsiveContainer>
         <PieChart>
           <Pie

@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface MaintenanceCategoryChartProps {
   data: Record<string, number>;
+  height?: number;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,7 +33,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: '#94a3b8',
 };
 
-export function MaintenanceCategoryChart({ data }: MaintenanceCategoryChartProps) {
+export function MaintenanceCategoryChart({ data, height = 250 }: MaintenanceCategoryChartProps) {
   const chartData = Object.entries(data)
     .map(([category, count]) => ({
       name: CATEGORY_LABELS[category] || category,
@@ -45,7 +46,7 @@ export function MaintenanceCategoryChart({ data }: MaintenanceCategoryChartProps
   if (chartData.length === 0) {
     return (
       <div style={{
-        height: 250,
+        height,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -57,7 +58,7 @@ export function MaintenanceCategoryChart({ data }: MaintenanceCategoryChartProps
   }
 
   return (
-    <div style={{ width: '100%', height: 250 }}>
+    <div style={{ width: '100%', height }}>
       <ResponsiveContainer>
         <BarChart
           data={chartData}

@@ -8,14 +8,15 @@ interface RevenueChartProps {
     expected: number;
     collected: number;
   }[];
+  height?: number;
 }
 
-export function RevenueChart({ data }: RevenueChartProps) {
+export function RevenueChart({ data, height = 300 }: RevenueChartProps) {
   const formatCurrency = (value: number) =>
     `$${(value / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   return (
-    <div style={{ width: '100%', height: 300 }}>
+    <div style={{ width: '100%', height }}>
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
