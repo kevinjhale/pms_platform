@@ -169,52 +169,98 @@ log_info "Starting application..."
 docker compose up -d
 
 # -------------------------------------------
-# Step 10: Wait for Application to be Ready
+# Step 10: Wait for Server to Respond
 # -------------------------------------------
-log_info "Waiting for application to be ready..."
+log_info "Waiting for server to start..."
 MAX_ATTEMPTS=30
 ATTEMPT=0
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    if curl -s http://localhost:3000/api/health | grep -q "healthy"; then
-        log_info "Application is healthy!"
+    if curl -s http://localhost:3000/api/health > /dev/null 2>&1; then
+        log_info "Server is responding!"
         break
     fi
     ATTEMPT=$((ATTEMPT + 1))
-    echo "  Waiting... (${ATTEMPT}/${MAX_ATTEMPTS})"
+    echo "  Waiting for server... (${ATTEMPT}/${MAX_ATTEMPTS})"
     sleep 5
 done
 
 if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-    log_error "Application failed to become healthy. Check logs with: docker compose logs"
+    log_error "Server failed to start. Check logs with: docker compose logs"
     exit 1
 fi
 
 # -------------------------------------------
-# Step 11: Initialize Database (if needed)
+# Step 11: Initialize Database Schema
 # -------------------------------------------
-log_info "Checking database..."
+log_info "Checking database status..."
 HEALTH_STATUS=$(curl -s http://localhost:3000/api/health)
+
 if echo "$HEALTH_STATUS" | grep -q "no such table"; then
-    log_info "Initializing database schema..."
+    log_info "Database tables missing, creating schema..."
     docker compose exec -T web npx drizzle-kit push
+    sleep 5
+
+    # Verify schema was created
+    HEALTH_STATUS=$(curl -s http://localhost:3000/api/health)
+    if echo "$HEALTH_STATUS" | grep -q "healthy"; then
+        log_info "Database schema created successfully!"
+    else
+        log_error "Failed to create database schema"
+        echo "$HEALTH_STATUS"
+        exit 1
+    fi
+elif echo "$HEALTH_STATUS" | grep -q "healthy"; then
+    log_info "Database schema already exists"
+else
+    log_warn "Unexpected health status: $HEALTH_STATUS"
 fi
 
 # -------------------------------------------
-# Step 12: Seed Demo Data (optional, first run only)
+# Step 12: Seed Demo Data (first run only)
 # -------------------------------------------
-# Check if data already exists by looking at organizations count
-ORG_COUNT=$(docker compose exec -T web node -e "
-const Database = require('better-sqlite3');
-const db = new Database('/app/data/pms.db');
-const count = db.prepare('SELECT COUNT(*) as count FROM organizations').get();
-console.log(count.count);
+log_info "Checking if demo data needs to be seeded..."
+
+# Try to count organizations to see if data exists
+ORG_COUNT=$(docker compose exec -T web sh -c "
+    node -e \"
+    const Database = require('better-sqlite3');
+    try {
+        const db = new Database('/app/data/pms.db');
+        const count = db.prepare('SELECT COUNT(*) as count FROM organizations').get();
+        console.log(count.count);
+    } catch(e) {
+        console.log('0');
+    }
+    \"
 " 2>/dev/null || echo "0")
 
-if [ "$ORG_COUNT" = "0" ]; then
-    log_info "Seeding demo data..."
+# Trim whitespace
+ORG_COUNT=$(echo "$ORG_COUNT" | tr -d '[:space:]')
+
+if [ "$ORG_COUNT" = "0" ] || [ -z "$ORG_COUNT" ]; then
+    log_info "Seeding demo data (this may take a moment)..."
     docker compose exec -T web npx tsx scripts/seed-demo-data.ts
+
+    if [ $? -eq 0 ]; then
+        log_info "Demo data seeded successfully!"
+    else
+        log_warn "Demo data seeding had issues, but continuing..."
+    fi
 else
-    log_warn "Database already has data, skipping seed..."
+    log_warn "Database already has data ($ORG_COUNT organizations), skipping seed..."
+fi
+
+# -------------------------------------------
+# Step 13: Final Health Check
+# -------------------------------------------
+log_info "Running final health check..."
+FINAL_HEALTH=$(curl -s http://localhost:3000/api/health)
+
+if echo "$FINAL_HEALTH" | grep -q "healthy"; then
+    log_info "Application is healthy and ready!"
+else
+    log_error "Application is not healthy: $FINAL_HEALTH"
+    exit 1
 fi
 
 # -------------------------------------------
