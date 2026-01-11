@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOrgContext } from "@/lib/org-context";
-import { getDashboardReport } from "@/services/reports";
+import { getDashboardReport, getRevenueHistory } from "@/services/reports";
+import { getRentRoll, calculateRentRollTotals } from "@/services/rentRoll";
 import { centsToDollars } from "@/lib/utils";
+import {
+  RevenueChart,
+  PaymentStatusChart,
+  MaintenanceCategoryChart,
+  LeaseExpirationChart,
+  OccupancyChart,
+} from "@/components/charts";
 
 const CATEGORY_LABELS: Record<string, string> = {
   plumbing: "Plumbing",
@@ -24,7 +32,12 @@ export default async function ReportsPage() {
     redirect("/onboarding");
   }
 
-  const report = await getDashboardReport(organization.id);
+  const [report, revenueHistory, rentRoll] = await Promise.all([
+    getDashboardReport(organization.id),
+    getRevenueHistory(organization.id, 6),
+    getRentRoll(organization.id),
+  ]);
+  const rentRollTotals = calculateRentRollTotals(rentRoll);
   const currentMonth = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
@@ -71,6 +84,66 @@ export default async function ReportsPage() {
               {report.occupancy.vacantUnits}
             </div>
             <div style={{ color: "var(--secondary)", fontSize: "0.875rem" }}>Vacant</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Visual Charts Section */}
+      <section style={{ marginBottom: "2.5rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem" }}>
+          Visual Analytics
+        </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+            gap: "1.5rem",
+          }}
+        >
+          {/* Revenue Trend Chart */}
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "1rem" }}>
+              Revenue Trend (6 months)
+            </h3>
+            <RevenueChart data={revenueHistory} />
+          </div>
+
+          {/* Occupancy Donut */}
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "1rem" }}>
+              Occupancy Status
+            </h3>
+            <OccupancyChart
+              occupied={report.occupancy.occupiedUnits}
+              vacant={report.occupancy.vacantUnits}
+              occupancyRate={report.occupancy.occupancyRate}
+            />
+            <div style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "2rem",
+              marginTop: "0.5rem",
+              fontSize: "0.875rem"
+            }}>
+              <span><span style={{ color: "#22c55e" }}>●</span> Occupied: {report.occupancy.occupiedUnits}</span>
+              <span><span style={{ color: "#ef4444" }}>●</span> Vacant: {report.occupancy.vacantUnits}</span>
+            </div>
+          </div>
+
+          {/* Payment Status Distribution */}
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "1rem" }}>
+              Payment Status Distribution
+            </h3>
+            <PaymentStatusChart data={rentRollTotals.statusCounts} />
+          </div>
+
+          {/* Maintenance by Category */}
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "1rem" }}>
+              Open Maintenance by Category
+            </h3>
+            <MaintenanceCategoryChart data={report.maintenance.byCategory} />
           </div>
         </div>
       </section>

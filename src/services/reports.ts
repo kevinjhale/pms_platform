@@ -325,6 +325,65 @@ export async function getApplicationMetrics(
   };
 }
 
+// ============ REVENUE HISTORY ============
+
+export interface MonthlyRevenueData {
+  month: string; // Short month name (Jan, Feb, etc.)
+  expected: number; // in cents
+  collected: number; // in cents
+}
+
+export async function getRevenueHistory(
+  organizationId: string,
+  months: number = 6
+): Promise<MonthlyRevenueData[]> {
+  const db = getDb();
+  const currentDate = now();
+  const result: MonthlyRevenueData[] = [];
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  for (let i = months - 1; i >= 0; i--) {
+    const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+    const firstOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    const lastOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
+
+    const payments = await db
+      .select({
+        amountDue: rentPayments.amountDue,
+        amountPaid: rentPayments.amountPaid,
+        lateFee: rentPayments.lateFee,
+      })
+      .from(rentPayments)
+      .innerJoin(leases, eq(rentPayments.leaseId, leases.id))
+      .innerJoin(units, eq(leases.unitId, units.id))
+      .innerJoin(properties, eq(units.propertyId, properties.id))
+      .where(
+        and(
+          eq(properties.organizationId, organizationId),
+          gte(rentPayments.dueDate, firstOfMonth),
+          lte(rentPayments.dueDate, lastOfMonth)
+        )
+      );
+
+    let expected = 0;
+    let collected = 0;
+
+    for (const payment of payments) {
+      expected += payment.amountDue + (payment.lateFee || 0);
+      collected += payment.amountPaid || 0;
+    }
+
+    result.push({
+      month: monthNames[targetDate.getMonth()],
+      expected,
+      collected,
+    });
+  }
+
+  return result;
+}
+
 // ============ COMBINED DASHBOARD ============
 
 export interface DashboardReport {
