@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm';
 import {
   getDb,
   properties,
@@ -78,6 +78,7 @@ export interface MonthlyPaymentSummary {
 
 /**
  * Get rent roll data for an organization
+ * Optimized to batch queries and avoid N+1 problem
  */
 export async function getRentRoll(organizationId: string): Promise<RentRollEntry[]> {
   const db = getDb();
@@ -97,23 +98,55 @@ export async function getRentRoll(organizationId: string): Promise<RentRollEntry
     .where(
       and(
         eq(properties.organizationId, organizationId),
-        // Include active, pending, and expired leases (not terminated or draft)
         sql`${leases.status} IN ('active', 'pending', 'expired')`
       )
     )
     .orderBy(properties.name, units.unitNumber);
 
-  // For each lease, get charges and calculate balances
-  const rentRollEntries: RentRollEntry[] = [];
+  if (result.length === 0) {
+    return [];
+  }
 
-  for (const row of result) {
-    // Get charges for this lease
-    const charges = await db
-      .select()
-      .from(leaseCharges)
-      .where(and(eq(leaseCharges.leaseId, row.lease.id), eq(leaseCharges.isActive, true)));
+  const leaseIds = result.map(r => r.lease.id);
 
-    // Calculate total monthly charges
+  // Batch fetch all charges for all leases in one query
+  const allCharges = await db
+    .select()
+    .from(leaseCharges)
+    .where(and(
+      inArray(leaseCharges.leaseId, leaseIds),
+      eq(leaseCharges.isActive, true)
+    ));
+
+  // Group charges by leaseId
+  const chargesByLease = new Map<string, typeof allCharges>();
+  for (const charge of allCharges) {
+    const existing = chargesByLease.get(charge.leaseId) || [];
+    existing.push(charge);
+    chargesByLease.set(charge.leaseId, existing);
+  }
+
+  // Batch fetch all balances in one query using GROUP BY
+  const allBalances = await db
+    .select({
+      leaseId: rentPayments.leaseId,
+      totalDue: sql<number>`COALESCE(SUM(${rentPayments.amountDue}), 0)`,
+      totalPaid: sql<number>`COALESCE(SUM(${rentPayments.amountPaid}), 0)`,
+    })
+    .from(rentPayments)
+    .where(inArray(rentPayments.leaseId, leaseIds))
+    .groupBy(rentPayments.leaseId);
+
+  // Create balance map
+  const balanceByLease = new Map<string, number>();
+  for (const b of allBalances) {
+    balanceByLease.set(b.leaseId, (b.totalDue || 0) - (b.totalPaid || 0));
+  }
+
+  // Build rent roll entries
+  return result.map(row => {
+    const charges = chargesByLease.get(row.lease.id) || [];
+
     let totalMonthlyCharges = row.lease.monthlyRent;
     const chargesBreakdown = charges.map(c => {
       const amount = c.fixedAmount || c.estimatedAmount || 0;
@@ -128,7 +161,6 @@ export async function getRentRoll(organizationId: string): Promise<RentRollEntry
       };
     });
 
-    // Add rent as first charge if not already in charges
     if (!chargesBreakdown.some(c => c.category === 'rent')) {
       chargesBreakdown.unshift({
         category: 'rent',
@@ -138,18 +170,9 @@ export async function getRentRoll(organizationId: string): Promise<RentRollEntry
       });
     }
 
-    // Calculate current balance (sum of all unpaid amounts)
-    const balanceResult = await db
-      .select({
-        totalDue: sql<number>`COALESCE(SUM(${rentPayments.amountDue}), 0)`,
-        totalPaid: sql<number>`COALESCE(SUM(${rentPayments.amountPaid}), 0)`,
-      })
-      .from(rentPayments)
-      .where(eq(rentPayments.leaseId, row.lease.id));
+    const currentBalance = balanceByLease.get(row.lease.id) || 0;
 
-    const currentBalance = (balanceResult[0]?.totalDue || 0) - (balanceResult[0]?.totalPaid || 0);
-
-    rentRollEntries.push({
+    return {
       propertyId: row.property.id,
       propertyName: row.property.name,
       address: row.property.address,
@@ -184,51 +207,62 @@ export async function getRentRoll(organizationId: string): Promise<RentRollEntry
       currentBalance,
 
       charges: chargesBreakdown,
-    });
-  }
-
-  return rentRollEntries;
+    };
+  });
 }
 
 /**
  * Get monthly payment breakdown for a specific year
+ * Optimized to fetch all data in a single query
  */
 export async function getMonthlyPayments(
   organizationId: string,
   year: number
 ): Promise<MonthlyPaymentSummary[]> {
   const db = getDb();
-  const months: MonthlyPaymentSummary[] = [];
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  for (let month = 0; month < 12; month++) {
-    const startOfMonth = new Date(year, month, 1);
-    const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59);
+  // Fetch all payments for the entire year in one query
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+
+  const allPayments = await db
+    .select({
+      leaseId: rentPayments.leaseId,
+      periodStart: rentPayments.periodStart,
+      lineItem: paymentLineItems,
+    })
+    .from(rentPayments)
+    .innerJoin(leases, eq(rentPayments.leaseId, leases.id))
+    .innerJoin(units, eq(leases.unitId, units.id))
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .leftJoin(paymentLineItems, eq(paymentLineItems.rentPaymentId, rentPayments.id))
+    .where(
+      and(
+        eq(properties.organizationId, organizationId),
+        gte(rentPayments.periodStart, startOfYear),
+        lte(rentPayments.periodStart, endOfYear)
+      )
+    );
+
+  // Group by month in JavaScript
+  const paymentsByMonth = new Map<number, typeof allPayments>();
+  for (const payment of allPayments) {
+    const month = new Date(payment.periodStart).getMonth();
+    const existing = paymentsByMonth.get(month) || [];
+    existing.push(payment);
+    paymentsByMonth.set(month, existing);
+  }
+
+  // Build result
+  return Array.from({ length: 12 }, (_, month) => {
+    const monthPayments = paymentsByMonth.get(month) || [];
     const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
 
-    // Get all payments for this month for the organization
-    const payments = await db
-      .select({
-        leaseId: rentPayments.leaseId,
-        lineItem: paymentLineItems,
-      })
-      .from(rentPayments)
-      .innerJoin(leases, eq(rentPayments.leaseId, leases.id))
-      .innerJoin(units, eq(leases.unitId, units.id))
-      .innerJoin(properties, eq(units.propertyId, properties.id))
-      .leftJoin(paymentLineItems, eq(paymentLineItems.rentPaymentId, rentPayments.id))
-      .where(
-        and(
-          eq(properties.organizationId, organizationId),
-          gte(rentPayments.periodStart, startOfMonth),
-          lte(rentPayments.periodStart, endOfMonth)
-        )
-      );
-
-    const entries = payments
+    const entries = monthPayments
       .filter(p => p.lineItem)
       .map(p => ({
         leaseId: p.leaseId,
@@ -238,15 +272,13 @@ export async function getMonthlyPayments(
         balance: p.lineItem!.amountDue - (p.lineItem!.amountPaid || 0),
       }));
 
-    months.push({
+    return {
       month: monthStr,
       year,
       monthName: monthNames[month],
       entries,
-    });
-  }
-
-  return months;
+    };
+  });
 }
 
 /**

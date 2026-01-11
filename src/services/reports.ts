@@ -358,7 +358,6 @@ export async function getRevenueHistory(
 ): Promise<MonthlyRevenueData[]> {
   const db = getDb();
   const currentDate = now();
-  const result: MonthlyRevenueData[] = [];
 
   // Use provided month/year as the end point, or default to current
   const targetEndMonth = endMonth ? endMonth - 1 : currentDate.getMonth();
@@ -366,41 +365,52 @@ export async function getRevenueHistory(
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+  // Calculate date range for all months
+  const endDate = new Date(targetEndYear, targetEndMonth + 1, 0, 23, 59, 59);
+  const startDate = new Date(targetEndYear, targetEndMonth - months + 1, 1);
+
+  // Fetch all payments in the date range with one query
+  const allPayments = await db
+    .select({
+      dueDate: rentPayments.dueDate,
+      amountDue: rentPayments.amountDue,
+      amountPaid: rentPayments.amountPaid,
+      lateFee: rentPayments.lateFee,
+    })
+    .from(rentPayments)
+    .innerJoin(leases, eq(rentPayments.leaseId, leases.id))
+    .innerJoin(units, eq(leases.unitId, units.id))
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .where(
+      and(
+        eq(properties.organizationId, organizationId),
+        gte(rentPayments.dueDate, startDate),
+        lte(rentPayments.dueDate, endDate)
+      )
+    );
+
+  // Group payments by year-month key
+  const paymentsByMonth = new Map<string, { expected: number; collected: number }>();
+  for (const payment of allPayments) {
+    const d = new Date(payment.dueDate);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const existing = paymentsByMonth.get(key) || { expected: 0, collected: 0 };
+    existing.expected += payment.amountDue + (payment.lateFee || 0);
+    existing.collected += payment.amountPaid || 0;
+    paymentsByMonth.set(key, existing);
+  }
+
+  // Build result array
+  const result: MonthlyRevenueData[] = [];
   for (let i = months - 1; i >= 0; i--) {
     const targetDate = new Date(targetEndYear, targetEndMonth - i, 1);
-    const firstOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-    const lastOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
-
-    const payments = await db
-      .select({
-        amountDue: rentPayments.amountDue,
-        amountPaid: rentPayments.amountPaid,
-        lateFee: rentPayments.lateFee,
-      })
-      .from(rentPayments)
-      .innerJoin(leases, eq(rentPayments.leaseId, leases.id))
-      .innerJoin(units, eq(leases.unitId, units.id))
-      .innerJoin(properties, eq(units.propertyId, properties.id))
-      .where(
-        and(
-          eq(properties.organizationId, organizationId),
-          gte(rentPayments.dueDate, firstOfMonth),
-          lte(rentPayments.dueDate, lastOfMonth)
-        )
-      );
-
-    let expected = 0;
-    let collected = 0;
-
-    for (const payment of payments) {
-      expected += payment.amountDue + (payment.lateFee || 0);
-      collected += payment.amountPaid || 0;
-    }
+    const key = `${targetDate.getFullYear()}-${targetDate.getMonth()}`;
+    const data = paymentsByMonth.get(key) || { expected: 0, collected: 0 };
 
     result.push({
       month: monthNames[targetDate.getMonth()],
-      expected,
-      collected,
+      expected: data.expected,
+      collected: data.collected,
     });
   }
 
