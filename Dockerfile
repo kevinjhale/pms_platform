@@ -2,8 +2,9 @@
 
 FROM oven/bun:1-alpine AS base
 
-# Install dependencies for better-sqlite3 native compilation
-RUN apk add --no-cache python3 make g++ sqlite nodejs
+# Install dependencies for better-sqlite3 native compilation and scripts
+RUN apk add --no-cache python3 make g++ sqlite nodejs npm && \
+    npm install -g tsx
 
 # =============================================================================
 # Stage 1: Dependencies
@@ -23,8 +24,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Create data directory for SQLite during build
+RUN mkdir -p /app/data
+
 # Build Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL="file:/app/data/pms.db"
 RUN bun run build
 
 # =============================================================================
