@@ -1,10 +1,13 @@
 import { auth } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
+import { getOrgContext } from '@/lib/org-context';
 import { getPropertyById, getUnitsByProperty } from '@/services/properties';
+import { getTemplatesByOrganization } from '@/services/unitTemplates';
 import { createUnitAction, deletePropertyAction } from '@/app/actions/properties';
 import { formatCurrency, centsToDollars } from '@/lib/utils';
 import Link from 'next/link';
 import { DeletePropertyButton } from '@/components/DeletePropertyButton';
+import { AddUnitForm } from '@/components/AddUnitForm';
 
 const STATUS_COLORS = {
   available: { bg: '#dcfce7', text: '#166534' },
@@ -23,6 +26,11 @@ export default async function PropertyDetailPage({
     redirect('/login');
   }
 
+  const { organization } = await getOrgContext();
+  if (!organization) {
+    redirect('/onboarding');
+  }
+
   const { id } = await params;
   const property = await getPropertyById(id);
 
@@ -30,7 +38,10 @@ export default async function PropertyDetailPage({
     notFound();
   }
 
-  const units = await getUnitsByProperty(id);
+  const [units, templates] = await Promise.all([
+    getUnitsByProperty(id),
+    getTemplatesByOrganization(organization.id),
+  ]);
 
   const createUnitWithPropertyId = createUnitAction.bind(null, id);
   const deletePropertyWithId = deletePropertyAction.bind(null, id);
@@ -121,168 +132,7 @@ export default async function PropertyDetailPage({
         <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
           + Add New Unit
         </summary>
-        <form action={createUnitWithPropertyId} style={{ marginTop: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Unit Number
-              </label>
-              <input
-                type="text"
-                name="unitNumber"
-                placeholder="e.g., 101"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Bedrooms *
-              </label>
-              <input
-                type="number"
-                name="bedrooms"
-                required
-                min="0"
-                placeholder="2"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Bathrooms *
-              </label>
-              <input
-                type="number"
-                name="bathrooms"
-                required
-                min="0"
-                step="0.5"
-                placeholder="1.5"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Sq Ft
-              </label>
-              <input
-                type="number"
-                name="sqft"
-                min="0"
-                placeholder="850"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Rent ($/mo) *
-              </label>
-              <input
-                type="number"
-                name="rentAmount"
-                required
-                min="0"
-                step="0.01"
-                placeholder="1500"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Deposit ($)
-              </label>
-              <input
-                type="number"
-                name="depositAmount"
-                min="0"
-                step="0.01"
-                placeholder="1500"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Status
-              </label>
-              <select
-                name="status"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--bg-primary)',
-                }}
-              >
-                <option value="unlisted">Unlisted</option>
-                <option value="available">Available</option>
-                <option value="occupied">Occupied</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ marginTop: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-              Features (comma-separated)
-            </label>
-            <input
-              type="text"
-              name="features"
-              placeholder="e.g., Dishwasher, In-unit laundry, Balcony"
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-              }}
-            />
-          </div>
-          <button
-            type="submit"
-            style={{
-              marginTop: '1rem',
-              padding: '0.625rem 1.5rem',
-              backgroundColor: 'var(--accent-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-          >
-            Add Unit
-          </button>
-        </form>
+        <AddUnitForm templates={templates} onSubmit={createUnitWithPropertyId} />
       </details>
 
       {/* Units List */}
