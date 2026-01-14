@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-10
+**Last Updated**: 2026-01-13
 
 ## Project Overview
 
@@ -21,18 +21,107 @@ The platform now has:
 - Property cards with visible borders and unit counts
 - Rent Roll report with transposed table, utility jurisdictions, and monthly breakdown
 - Comprehensive demo data for rent roll testing (24 months of payment history)
-- **NEW: Marketing site with Home, Features, Pricing, Contact pages**
-- **NEW: Self-hosted license option ($229) with managed hosting plans**
-- **NEW: Date range selector for reports (start/end month filtering)**
-- **NEW: Optimized reports page (N+1 queries fixed, ~1.2s load time)**
-- **NEW: Unified login (single sign-in for all user types)**
+- Marketing site with Home, Features, Pricing, Contact pages
+- Self-hosted license option ($229) with managed hosting plans
+- Date range selector for reports (start/end month filtering)
+- Optimized reports page (N+1 queries fixed, ~1.2s load time)
+- Unified login (single sign-in for all user types)
+- **NEW: Configurable dashboard with drag-and-drop card system**
+- **NEW: 19 card types across 4 categories (metrics, charts, lists, actions)**
+- **NEW: Per-user dashboard configuration persistence**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
 - Production deployment on DigitalOcean (halestormsw.com)
 
 ---
 
-## What Was Done This Session (2026-01-10)
+## What Was Done This Session (2026-01-13)
+
+### Configurable Dashboard Card System - Complete Implementation
+
+Built a fully customizable dashboard where property managers can add, remove, resize, and reorder cards showing various metrics, charts, and lists.
+
+#### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/db/schema/dashboard.ts` | Database schema for per-user dashboard configs |
+| `src/lib/dashboard/cardTypes.ts` | Card type definitions with metadata and data requirements |
+| `src/services/dashboard.ts` | Dashboard service (CRUD, smart data fetching) |
+| `src/app/api/dashboard/config/route.ts` | API route for saving/loading dashboard config |
+| `src/components/dashboard/DashboardGrid.tsx` | Main grid with @dnd-kit drag-and-drop |
+| `src/components/dashboard/DashboardCard.tsx` | Card wrapper with resize/remove controls |
+| `src/components/dashboard/AddCardModal.tsx` | Modal for adding new cards |
+| `src/components/dashboard/cards/MetricCard.tsx` | Single-stat metric card renderer |
+| `src/components/dashboard/cards/ChartCards.tsx` | Chart cards (revenue, occupancy, payment status, maintenance) |
+| `src/components/dashboard/cards/ListCards.tsx` | List cards (maintenance, leases, payments, applications, properties, vacants) |
+| `src/components/dashboard/cards/QuickActionsCard.tsx` | Quick action shortcuts card |
+| `src/components/dashboard/cards/index.tsx` | Card content renderer registry |
+| `src/app/landlord/dashboard/page.tsx` | Dashboard page (server component) |
+| `src/app/landlord/dashboard/DashboardContent.tsx` | Dashboard client component |
+
+#### Card Types (19 total)
+
+**Metrics (9):**
+- Occupancy Rate, Total Units, Monthly Revenue, Collection Rate
+- Open Maintenance, Pending Applications
+- Expiring Leases (30 days), Expiring Leases (90 days), Outstanding Balance
+
+**Charts (4):**
+- Revenue Trend (bar chart, 6 months)
+- Occupancy Chart (pie - occupied vs vacant)
+- Payment Status (pie - current/partial/delinquent)
+- Maintenance by Category (pie)
+
+**Lists (6):**
+- Recent Maintenance, Upcoming Lease Expirations
+- Overdue Payments, Recent Applications
+- Properties List, Vacant Units
+
+**Actions (1):**
+- Quick Actions (shortcuts to common tasks)
+
+#### Features
+
+- **Drag-and-Drop Reordering**: Using @dnd-kit library
+- **Card Resizing**: +W/-W and +H/-H controls in edit mode
+- **Per-User Persistence**: Each user has their own dashboard layout
+- **Smart Data Fetching**: Only fetches data required by active cards
+- **Default Dashboard**: Sensible defaults for new users
+- **4-Column Grid**: Responsive layout (cards span 1-4 columns, 1-3 rows)
+- **Edit Mode**: Toggle to customize, with save/cancel flow
+- **Error Handling**: User feedback on save failures
+
+#### Dependencies Added
+
+- `@dnd-kit/core@6.3.1`
+- `@dnd-kit/sortable@10.0.0`
+- `@dnd-kit/utilities@3.2.2`
+
+#### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/db/schema/index.ts` | Export dashboard schema |
+| `src/app/landlord/page.tsx` | Redirect to /landlord/dashboard instead of /landlord/reports |
+| `src/components/LandlordSidebar.tsx` | Dashboard link points to /landlord/dashboard |
+| `CLAUDE.md` | Updated bun usage requirements and agent usage instructions |
+
+#### Phase 3 Features (Planned)
+
+- Per-card date range selector for time-based reports
+- Property dropdown filter for property-specific cards
+- Card configuration modal for custom settings
+
+#### Navigation
+
+Dashboard is now the default landing page for landlords/managers:
+- **URL**: `/landlord/dashboard`
+- **Sidebar**: Dashboard link at top
+
+---
+
+## What Was Done Previous Session (2026-01-10)
 
 ### Marketing Site - Complete Implementation
 

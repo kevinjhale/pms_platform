@@ -149,7 +149,8 @@ Use **structured JSON logging** with:
 
 - Follow StandardJS or project ESLint config
 - async/await for async code, parallelize with Promise.all when possible
-- **Use `bun` as the package manager** (not npm/yarn/pnpm)
+- **ALWAYS use `bun` - NEVER use npm/yarn/pnpm**
+  - This is non-negotiable. If bun is not in PATH, troubleshoot or ask the user - do not fall back to npm.
   - `bun install` - install dependencies
   - `bun run <script>` - run package.json scripts
   - `bun add <pkg>` - add dependency
@@ -219,7 +220,7 @@ Use **structured JSON logging** with:
 
 ### Agent-Driven Workflow
 
-**Use the custom agents in `.claude/agents/` at each stage of development:**
+**ALWAYS use the custom agents in `.claude/agents/` - they exist to improve quality and consistency. Use them proactively at each stage of development, not just when explicitly asked:**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -246,15 +247,17 @@ Use **structured JSON logging** with:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**When to invoke agents:**
+**When to invoke agents (use proactively - don't wait to be asked):**
 - **architect**: Before planning non-trivial features or major changes
 - **sql-writer**: When adding/modifying database schema or writing complex queries
 - **api-designer**: When creating new API endpoints
-- **code-reviewer**: After completing implementation, before commit
-- **a11y-auditor**: After UI changes (components, pages, modals)
+- **code-reviewer**: After completing implementation, before commit - ALWAYS run this
+- **a11y-auditor**: After UI changes (components, pages, modals) - ALWAYS run for UI work
 - **test-writer**: After code-reviewer passes, for complex business logic
 - **commit-preparer**: Before creating commits (especially multi-file changes)
 - **refactor-planner**: Periodically or when code-reviewer finds recurring patterns
+
+**Important**: These agents exist to catch issues early and maintain quality. Skipping them leads to bugs and inconsistencies. When in doubt, run the agent.
 
 ### Planning
 
