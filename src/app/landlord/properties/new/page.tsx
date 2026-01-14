@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getOrgContext } from '@/lib/org-context';
 import { createPropertyAction } from '@/app/actions/properties';
+import { getPmClients } from '@/services/pmClients';
 import Link from 'next/link';
 
 const PROPERTY_TYPES = [
@@ -13,7 +14,11 @@ const PROPERTY_TYPES = [
   { value: 'other', label: 'Other' },
 ];
 
-export default async function NewPropertyPage() {
+interface PageProps {
+  searchParams: Promise<{ client?: string }>;
+}
+
+export default async function NewPropertyPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user) {
     redirect('/login');
@@ -24,6 +29,21 @@ export default async function NewPropertyPage() {
     redirect('/onboarding');
   }
 
+  const { client: clientId } = await searchParams;
+  const isPlatformManager = session.user.role === 'manager';
+
+  // Get PM clients if user is a property manager
+  const pmClients = isPlatformManager
+    ? await getPmClients(session.user.id)
+    : [];
+
+  const hasPmClients = pmClients.length > 0;
+
+  // PMs must select a client to create a property for
+  const selectedClient = clientId
+    ? pmClients.find(c => c.id === clientId)
+    : null;
+
   return (
     <main className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem', maxWidth: '700px' }}>
       <h1 style={{ marginBottom: '0.5rem' }}>Add New Property</h1>
@@ -33,6 +53,47 @@ export default async function NewPropertyPage() {
 
       <form action={createPropertyAction}>
         <div style={{ display: 'grid', gap: '1.5rem' }}>
+          {/* Client selector for property managers */}
+          {isPlatformManager && hasPmClients && (
+            <div style={{
+              padding: '1rem',
+              backgroundColor: 'var(--surface)',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+            }}>
+              <label htmlFor="clientId" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Creating property for *
+              </label>
+              <select
+                id="clientId"
+                name="clientId"
+                required
+                defaultValue={clientId || ''}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  backgroundColor: 'var(--background)',
+                }}
+              >
+                <option value="">Select a client...</option>
+                {pmClients.filter(c => c.canCreateProperties).map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.displayName}
+                    {client.organizationName && ` (${client.organizationName})`}
+                  </option>
+                ))}
+              </select>
+              {selectedClient && (
+                <p style={{ fontSize: '0.875rem', color: 'var(--secondary)', marginTop: '0.5rem' }}>
+                  This property will be added to {selectedClient.displayName}&apos;s portfolio.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Property Name */}
           <div>
             <label htmlFor="name" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
@@ -225,7 +286,7 @@ export default async function NewPropertyPage() {
               Create Property
             </button>
             <Link
-              href="/landlord/properties"
+              href={clientId ? `/landlord/properties?client=${clientId}` : '/landlord/properties'}
               style={{
                 padding: '0.875rem 2rem',
                 backgroundColor: 'var(--bg-secondary)',

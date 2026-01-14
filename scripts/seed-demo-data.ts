@@ -31,6 +31,7 @@ import {
   maintenanceComments,
   applications,
   propertyManagers,
+  pmClientRelationships,
   unitPhotos,
   applicationDocuments,
   auditLogs,
@@ -188,10 +189,11 @@ async function seed() {
   console.log('\nCreating properties...');
 
   const propertiesData = [
-    // John's properties (Org 1)
+    // John's properties (Org 1) - landlord-1 owns these
     {
       id: 'prop-1',
       orgId: 'org-landlord-only',
+      landlordId: 'landlord-1',
       name: 'Sunset Apartments',
       address: '123 Sunset Blvd',
       city: 'Los Angeles',
@@ -208,6 +210,7 @@ async function seed() {
     {
       id: 'prop-2',
       orgId: 'org-landlord-only',
+      landlordId: 'landlord-1',
       name: 'Oak Street Townhomes',
       address: '456 Oak Street',
       city: 'Pasadena',
@@ -222,10 +225,11 @@ async function seed() {
       utilityElectricity: 'Pasadena Water & Power',
     },
 
-    // Sarah's properties (Org 2)
+    // Sarah's properties (Org 2) - landlord-2 owns these
     {
       id: 'prop-3',
       orgId: 'org-landlord-pm',
+      landlordId: 'landlord-2',
       name: 'Marina View Complex',
       address: '789 Harbor Drive',
       city: 'Marina del Rey',
@@ -242,6 +246,7 @@ async function seed() {
     {
       id: 'prop-4',
       orgId: 'org-landlord-pm',
+      landlordId: 'landlord-2',
       name: 'Downtown Lofts',
       address: '321 Main Street',
       city: 'Los Angeles',
@@ -256,10 +261,11 @@ async function seed() {
       utilityElectricity: 'LADWP',
     },
 
-    // Premier PM properties (Org 3 - Mike's properties managed by PM)
+    // Mike's properties (Org 3 - managed by PM) - landlord-3 owns these
     {
       id: 'prop-5',
       orgId: 'org-pm-only',
+      landlordId: 'landlord-3',
       name: 'Valley Gardens',
       address: '555 Garden Way',
       city: 'Sherman Oaks',
@@ -276,6 +282,7 @@ async function seed() {
     {
       id: 'prop-6',
       orgId: 'org-pm-only',
+      landlordId: 'landlord-3',
       name: 'Hillside Estates',
       address: '777 Hill Road',
       city: 'Glendale',
@@ -297,6 +304,7 @@ async function seed() {
       await db.insert(properties).values({
         id: prop.id,
         organizationId: prop.orgId,
+        landlordId: prop.landlordId,
         name: prop.name,
         address: prop.address,
         city: prop.city,
@@ -315,8 +323,9 @@ async function seed() {
       });
       console.log(`  Created property: ${prop.name}`);
     } else {
-      // Update property fields
+      // Update property fields including landlordId
       await db.update(properties).set({
+        landlordId: prop.landlordId,
         apn: prop.apn,
         utilityWater: prop.utilityWater,
         utilityTrash: prop.utilityTrash,
@@ -358,6 +367,85 @@ async function seed() {
         createdAt: daysAgo(60),
       });
       console.log(`  Assigned ${pm.userId} to ${pm.propertyId} (${pm.status})`);
+    }
+  }
+
+  // ========================================
+  // PM CLIENT RELATIONSHIPS
+  // Robert (manager-2) works with multiple landlords
+  // ========================================
+  console.log('\nCreating PM client relationships...');
+
+  const pmClientData = [
+    // Robert works with John Properties (landlord-1) - can create properties for his org
+    {
+      id: 'pm-client-1',
+      pmUserId: 'manager-2',
+      landlordUserId: 'landlord-1',
+      organizationId: 'org-landlord-only',
+      canCreateProperties: true,
+      notes: 'Long-term client since 2022',
+    },
+    // Robert works with Mike Estates (landlord-3) - already in same org
+    {
+      id: 'pm-client-2',
+      pmUserId: 'manager-2',
+      landlordUserId: 'landlord-3',
+      organizationId: 'org-pm-only',
+      canCreateProperties: true,
+      notes: 'Primary client - manages all properties',
+    },
+    // Robert works with Sarah Realty (landlord-2) - occasional work
+    {
+      id: 'pm-client-3',
+      pmUserId: 'manager-2',
+      landlordUserId: 'landlord-2',
+      organizationId: 'org-landlord-pm',
+      canCreateProperties: false,
+      notes: 'Backup PM for vacation coverage',
+    },
+    // Robert has an external client not on the platform
+    {
+      id: 'pm-client-4',
+      pmUserId: 'manager-2',
+      landlordUserId: null,
+      externalLandlordName: 'Patricia Chen',
+      externalLandlordEmail: 'patricia.chen@external.com',
+      externalLandlordPhone: '(818) 555-4001',
+      organizationId: 'org-pm-only', // Properties created under Robert's org
+      canCreateProperties: true,
+      notes: 'New client - owns 3 properties in Burbank, onboarding in progress',
+    },
+    // Lisa (manager-1) also has client relationships
+    {
+      id: 'pm-client-5',
+      pmUserId: 'manager-1',
+      landlordUserId: 'landlord-2',
+      organizationId: 'org-landlord-pm',
+      canCreateProperties: true,
+      notes: 'Primary PM for all Sarah Realty properties',
+    },
+  ];
+
+  for (const client of pmClientData) {
+    const existing = await db.select().from(pmClientRelationships).where(eq(pmClientRelationships.id, client.id)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(pmClientRelationships).values({
+        id: client.id,
+        pmUserId: client.pmUserId,
+        landlordUserId: client.landlordUserId,
+        externalLandlordName: (client as any).externalLandlordName || null,
+        externalLandlordEmail: (client as any).externalLandlordEmail || null,
+        externalLandlordPhone: (client as any).externalLandlordPhone || null,
+        organizationId: client.organizationId,
+        status: 'active',
+        canCreateProperties: client.canCreateProperties,
+        notes: client.notes,
+        createdAt: daysAgo(90),
+        updatedAt: timestamp,
+      });
+      const clientName = client.landlordUserId || (client as any).externalLandlordName;
+      console.log(`  Created PM-client relationship: ${client.pmUserId} -> ${clientName}`);
     }
   }
 

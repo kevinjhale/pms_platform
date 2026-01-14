@@ -12,6 +12,7 @@ import {
   updateUnit,
   deleteUnit,
 } from '@/services/properties';
+import { canPmCreatePropertyForClient } from '@/services/pmClients';
 import { dollarsToCents } from '@/lib/utils';
 
 export async function createPropertyAction(formData: FormData) {
@@ -33,14 +34,33 @@ export async function createPropertyAction(formData: FormData) {
   const propertyType = formData.get('propertyType') as string;
   const description = formData.get('description') as string;
   const yearBuilt = formData.get('yearBuilt') as string;
+  const clientId = formData.get('clientId') as string | null;
 
   if (!name || !address || !city || !state || !zip || !propertyType) {
     throw new Error('Missing required fields');
   }
 
+  // Determine organizationId and landlordId based on whether this is for a PM client
+  let targetOrgId = organization.id;
+  let targetLandlordId: string | undefined = session.user.id;
+
+  if (clientId) {
+    // PM is creating property for a client
+    const clientCheck = await canPmCreatePropertyForClient(session.user.id, clientId);
+    if (!clientCheck.allowed) {
+      throw new Error('Not authorized to create properties for this client');
+    }
+
+    // Use the client's organization and landlord
+    if (clientCheck.organizationId) {
+      targetOrgId = clientCheck.organizationId;
+    }
+    targetLandlordId = clientCheck.landlordId;
+  }
+
   const property = await createProperty({
-    organizationId: organization.id,
-    landlordId: session.user.id,
+    organizationId: targetOrgId,
+    landlordId: targetLandlordId,
     name,
     address,
     city,

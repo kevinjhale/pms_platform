@@ -1,5 +1,5 @@
-import { eq, and, desc, count, sql } from 'drizzle-orm';
-import { getDb, properties, units, propertyManagers, unitPhotos, type Property, type Unit, type NewProperty, type NewUnit } from '@/db';
+import { eq, and, desc, count, sql, or, inArray } from 'drizzle-orm';
+import { getDb, properties, units, propertyManagers, unitPhotos, pmClientRelationships, type Property, type Unit, type NewProperty, type NewUnit } from '@/db';
 import { generateId, now } from '@/lib/utils';
 
 // Properties
@@ -174,19 +174,190 @@ export async function getAvailableUnits(organizationId: string): Promise<(Unit &
   return result.map(r => ({ ...r.unit, property: r.property }));
 }
 
-export async function getUnitsByOrganization(organizationId: string): Promise<(Unit & { propertyName: string })[]> {
+export type UnitWithProperty = Unit & {
+  propertyId: string;
+  propertyName: string;
+  propertyAddress: string;
+  propertyCity: string;
+  propertyState: string;
+};
+
+export async function getUnitsByOrganization(organizationId: string): Promise<UnitWithProperty[]> {
   const db = getDb();
   const result = await db
     .select({
       unit: units,
       propertyName: properties.name,
+      propertyAddress: properties.address,
+      propertyCity: properties.city,
+      propertyState: properties.state,
     })
     .from(units)
     .innerJoin(properties, eq(units.propertyId, properties.id))
     .where(eq(properties.organizationId, organizationId))
     .orderBy(properties.name, units.unitNumber);
 
-  return result.map(r => ({ ...r.unit, propertyName: r.propertyName }));
+  return result.map(r => ({
+    ...r.unit,
+    propertyName: r.propertyName,
+    propertyAddress: r.propertyAddress,
+    propertyCity: r.propertyCity,
+    propertyState: r.propertyState,
+  }));
+}
+
+export async function getUnitsForManager(userId: string, organizationId: string): Promise<UnitWithProperty[]> {
+  const db = getDb();
+  const result = await db
+    .select({
+      unit: units,
+      propertyName: properties.name,
+      propertyAddress: properties.address,
+      propertyCity: properties.city,
+      propertyState: properties.state,
+    })
+    .from(units)
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .innerJoin(propertyManagers, eq(properties.id, propertyManagers.propertyId))
+    .where(
+      and(
+        eq(properties.organizationId, organizationId),
+        eq(propertyManagers.userId, userId),
+        eq(propertyManagers.status, 'accepted')
+      )
+    )
+    .orderBy(properties.name, units.unitNumber);
+
+  return result.map(r => ({
+    ...r.unit,
+    propertyName: r.propertyName,
+    propertyAddress: r.propertyAddress,
+    propertyCity: r.propertyCity,
+    propertyState: r.propertyState,
+  }));
+}
+
+/**
+ * Get units for a PM filtered by client (landlord they work with)
+ */
+export async function getUnitsForPmByClient(
+  pmUserId: string,
+  clientId: string
+): Promise<UnitWithProperty[]> {
+  const db = getDb();
+
+  // Get the client relationship to find the landlordUserId
+  const clientRelation = await db
+    .select()
+    .from(pmClientRelationships)
+    .where(
+      and(
+        eq(pmClientRelationships.id, clientId),
+        eq(pmClientRelationships.pmUserId, pmUserId),
+        eq(pmClientRelationships.status, 'active')
+      )
+    )
+    .limit(1);
+
+  if (!clientRelation[0]) {
+    return [];
+  }
+
+  const { landlordUserId, organizationId } = clientRelation[0];
+
+  // Build the filter: either by landlordId or by organizationId for external clients
+  const result = await db
+    .select({
+      unit: units,
+      propertyName: properties.name,
+      propertyAddress: properties.address,
+      propertyCity: properties.city,
+      propertyState: properties.state,
+    })
+    .from(units)
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .where(
+      landlordUserId
+        ? eq(properties.landlordId, landlordUserId)
+        : organizationId
+          ? eq(properties.organizationId, organizationId)
+          : sql`1=0` // No matches if no landlord or org
+    )
+    .orderBy(properties.name, units.unitNumber);
+
+  return result.map(r => ({
+    ...r.unit,
+    propertyName: r.propertyName,
+    propertyAddress: r.propertyAddress,
+    propertyCity: r.propertyCity,
+    propertyState: r.propertyState,
+  }));
+}
+
+/**
+ * Get all units for a PM across all their clients
+ */
+export async function getAllUnitsForPm(pmUserId: string): Promise<UnitWithProperty[]> {
+  const db = getDb();
+
+  // Get all active client relationships for this PM
+  const clientRelations = await db
+    .select()
+    .from(pmClientRelationships)
+    .where(
+      and(
+        eq(pmClientRelationships.pmUserId, pmUserId),
+        eq(pmClientRelationships.status, 'active')
+      )
+    );
+
+  if (clientRelations.length === 0) {
+    return [];
+  }
+
+  // Collect landlord IDs and org IDs from relationships
+  const landlordIds = clientRelations
+    .map(r => r.landlordUserId)
+    .filter((id): id is string => id !== null);
+
+  const orgIds = clientRelations
+    .filter(r => !r.landlordUserId && r.organizationId)
+    .map(r => r.organizationId)
+    .filter((id): id is string => id !== null);
+
+  // Build OR conditions
+  const conditions = [];
+  if (landlordIds.length > 0) {
+    conditions.push(inArray(properties.landlordId, landlordIds));
+  }
+  if (orgIds.length > 0) {
+    conditions.push(inArray(properties.organizationId, orgIds));
+  }
+
+  if (conditions.length === 0) {
+    return [];
+  }
+
+  const result = await db
+    .select({
+      unit: units,
+      propertyName: properties.name,
+      propertyAddress: properties.address,
+      propertyCity: properties.city,
+      propertyState: properties.state,
+    })
+    .from(units)
+    .innerJoin(properties, eq(units.propertyId, properties.id))
+    .where(or(...conditions))
+    .orderBy(properties.name, units.unitNumber);
+
+  return result.map(r => ({
+    ...r.unit,
+    propertyName: r.propertyName,
+    propertyAddress: r.propertyAddress,
+    propertyCity: r.propertyCity,
+    propertyState: r.propertyState,
+  }));
 }
 
 export async function updateUnit(id: string, data: Partial<Pick<Unit, 'unitNumber' | 'bedrooms' | 'bathrooms' | 'sqft' | 'rentAmount' | 'depositAmount' | 'status' | 'availableDate' | 'features' | 'description'>>) {

@@ -9,3 +9,4 @@ export * from './audit';
 export * from './invites';
 export * from './integrationSettings';
 export * from './dashboard';
+export * from './unitTemplates';

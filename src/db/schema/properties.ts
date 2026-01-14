@@ -6,6 +6,7 @@ export const properties = sqliteTable('properties', {
   id: text('id').primaryKey(),
   organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   landlordId: text('landlord_id').references(() => users.id),
+  createdByUserId: text('created_by_user_id').references(() => users.id), // PM who created on behalf of landlord
   name: text('name').notNull(),
   address: text('address').notNull(),
   city: text('city').notNull(),
@@ -24,6 +25,26 @@ export const properties = sqliteTable('properties', {
   longitude: real('longitude'),
   yearBuilt: integer('year_built'),
   description: text('description'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+// PM-Client relationships: links property managers to landlords they work with
+export const pmClientRelationships = sqliteTable('pm_client_relationships', {
+  id: text('id').primaryKey(),
+  pmUserId: text('pm_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // For landlords ON the platform:
+  landlordUserId: text('landlord_user_id').references(() => users.id, { onDelete: 'set null' }),
+  // For landlords NOT on platform (external clients):
+  externalLandlordName: text('external_landlord_name'),
+  externalLandlordEmail: text('external_landlord_email'),
+  externalLandlordPhone: text('external_landlord_phone'),
+  // Which organization to create properties under for this client
+  organizationId: text('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  // Metadata
+  status: text('status', { enum: ['active', 'inactive', 'pending'] }).notNull().default('active'),
+  canCreateProperties: integer('can_create_properties', { mode: 'boolean' }).notNull().default(true),
+  notes: text('notes'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
@@ -72,3 +93,5 @@ export type Unit = typeof units.$inferSelect;
 export type NewUnit = typeof units.$inferInsert;
 export type PropertyManager = typeof propertyManagers.$inferSelect;
 export type NewPropertyManager = typeof propertyManagers.$inferInsert;
+export type PmClientRelationship = typeof pmClientRelationships.$inferSelect;
+export type NewPmClientRelationship = typeof pmClientRelationships.$inferInsert;

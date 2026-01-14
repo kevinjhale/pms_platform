@@ -36,6 +36,20 @@
       "when": 1768009692971,
       "tag": "0004_lovely_wolverine",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1768357234639,
+      "tag": "0005_watery_rocket_raccoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1768360029377,
+      "tag": "0006_vengeful_greymalkin",
+      "breakpoints": true
     }
   ]
 }
