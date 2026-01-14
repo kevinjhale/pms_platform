@@ -8,3 +8,4 @@ export * from './maintenance';
 export * from './audit';
 export * from './invites';
 export * from './integrationSettings';
+export * from './dashboard';

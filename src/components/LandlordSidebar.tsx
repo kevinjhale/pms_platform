@@ -16,7 +16,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     label: 'Dashboard',
-    href: '/landlord',
+    href: '/landlord/dashboard',
     icon: '\u2302', // House
   },
   {
