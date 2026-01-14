@@ -152,6 +152,32 @@ export default async function SettingsPage() {
         </div>
       </section>
 
+      {/* Unit Templates Section */}
+      <section style={{ marginBottom: "2.5rem" }}>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem" }}>
+          Unit Templates
+        </h2>
+        <div className="card" style={{ padding: "1.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "0.25rem" }}>
+                Reusable Unit Templates
+              </h3>
+              <p style={{ color: "var(--secondary)", fontSize: "0.875rem" }}>
+                Create templates for similar units to speed up property setup
+              </p>
+            </div>
+            <Link
+              href="/landlord/settings/templates"
+              className="btn btn-primary"
+              style={{ textDecoration: "none" }}
+            >
+              Manage Templates
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Integrations Section - Only for owners/admins */}
       {canInvite && (
         <section style={{ marginBottom: "2.5rem" }}>
