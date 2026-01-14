@@ -140,6 +140,92 @@ Changed properties display from cards to a table showing units as rows.
 
 ---
 
+### Research Documents Created
+
+Conducted comprehensive research on four major feature areas based on client feedback. All documents saved in `research/` directory.
+
+#### 1. Payment Processing (`research/payment_processing.md`)
+
+**Problem**: Client accepts Zelle, CashApp, Venmo, PayPal, QuickBooks - wants flexible payment options with payment splitting.
+
+**Key Findings**:
+- P2P apps (Zelle, Venmo, CashApp) have no merchant APIs - can't automate
+- Stripe Connect with ACH is best for automated splitting (~$5 max fee)
+- Recommended: Hybrid approach with 3 tiers:
+  1. Automated (Stripe Connect)
+  2. Semi-automated (PayPal/Venmo via PayPal Commerce)
+  3. Manual recording (Zelle, CashApp, checks)
+
+**7 questions for PM** on automation vs flexibility, fee handling, QuickBooks integration.
+
+---
+
+#### 2. Automated Notices (`research/notices.md`)
+
+**Problem**: Need to automate late rent notices and eviction notices via email and certified mail.
+
+**Key Findings**:
+- Email reminders: 6-stage timeline (5 days before → delinquent)
+- Certified mail: **Lob** recommended (~$6-8/letter, excellent API)
+- Process servers: ABC Legal has API for hand-delivery ($50-150/service)
+- State-specific templates required for legal compliance
+
+**Implementation Phases**:
+1. Email automation (2-3 days)
+2. PDF notice generation (1 week)
+3. Certified mail integration (1-2 weeks)
+4. Process server integration (optional)
+
+**7 questions for PM** on states to support, automation level, approval workflow.
+
+---
+
+#### 3. Lease Management (`research/lease_management.md`)
+
+**Problem**: After DocuSign signing, must manually re-enter all lease data into app.
+
+**Key Findings**:
+- **Recommended**: Generate lease in-app → send for e-signature → auto-activate on completion
+- E-signature comparison:
+  - HelloSign: $25/mo, excellent API (recommended)
+  - BoldSign: $99/mo flat, unlimited (best for volume)
+  - DocuSign: $65/mo, industry standard
+- AI parsing (GPT-4, Textract) available for legacy lease import
+
+**Implementation Phases**:
+1. Lease builder UI (1 week)
+2. E-signature integration (1-2 weeks)
+3. Auto-activation on signature (3-5 days)
+4. Template builder (optional, 2-3 weeks)
+
+**8 questions for PM** on e-sign platform, state templates, renewal automation.
+
+---
+
+#### 4. Preventative Maintenance (`research/preventative_maintenance.md`)
+
+**Problem**: Need scheduled/recurring maintenance with calendar and email reminders.
+
+**Key Findings**:
+- 15+ pre-built templates (HVAC, plumbing, safety, pest, exterior)
+- Frequency options: weekly → annually, seasonal support
+- Calendar: FullCalendar (free tier) recommended
+- Email reminders to workers (7 days, 1 day), tenants (access notice), landlords (completion)
+- Vendor management for external contractors
+
+**Implementation Phases**:
+1. Core scheduling (1 week)
+2. Calendar view (3-5 days)
+3. Email notifications (3-5 days)
+4. Vendor management (1 week)
+5. Compliance reporting (3-5 days)
+
+**Total: 3-4 weeks**
+
+**8 questions for PM** on templates, tenant self-service, Google Calendar sync.
+
+---
+
 ### Previous: Configurable Dashboard Card System
 
 Built a fully customizable dashboard where property managers can add, remove, resize, and reorder cards showing various metrics, charts, and lists.
