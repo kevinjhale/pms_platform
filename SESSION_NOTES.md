@@ -26,9 +26,12 @@ The platform now has:
 - Date range selector for reports (start/end month filtering)
 - Optimized reports page (N+1 queries fixed, ~1.2s load time)
 - Unified login (single sign-in for all user types)
-- **NEW: Configurable dashboard with drag-and-drop card system**
-- **NEW: 19 card types across 4 categories (metrics, charts, lists, actions)**
-- **NEW: Per-user dashboard configuration persistence**
+- Configurable dashboard with drag-and-drop card system
+- 19 card types across 4 categories (metrics, charts, lists, actions)
+- Per-user dashboard configuration persistence
+- **NEW: PM client relationships for multi-landlord management**
+- **NEW: Unit templates for quick property setup**
+- **NEW: Properties page table view with units as rows**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
 - Production deployment on DigitalOcean (halestormsw.com)
@@ -37,7 +40,107 @@ The platform now has:
 
 ## What Was Done This Session (2026-01-13)
 
-### Configurable Dashboard Card System - Complete Implementation
+### PM Client Relationships - Multi-Landlord Management
+
+Property managers can now work with multiple landlords, viewing and creating properties for different clients.
+
+#### New Database Schema
+
+| Table | Purpose |
+|-------|---------|
+| `pm_client_relationships` | Tracks PM-landlord relationships with permissions |
+
+**Fields:**
+- `pmUserId` - The property manager
+- `landlordUserId` - On-platform landlord (nullable for external clients)
+- `externalLandlordName/Email/Phone` - External client info
+- `organizationId` - Which org properties belong to
+- `canCreateProperties` - Permission flag
+- `status` - active/inactive/pending
+- `notes` - Relationship notes
+
+#### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/services/pmClients.ts` | PM client management service |
+| `src/components/ClientSelector.tsx` | Dropdown for filtering by client |
+
+#### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/db/schema/properties.ts` | Added `pm_client_relationships` table |
+| `src/services/properties.ts` | Added `getAllUnitsForPm()`, `getUnitsForPmByClient()` |
+| `src/app/landlord/properties/page.tsx` | Table view, client selector, PM filtering |
+| `src/app/landlord/properties/new/page.tsx` | Client selection for PMs creating properties |
+| `src/app/actions/properties.ts` | Handle client ID for property creation |
+| `scripts/seed-demo-data.ts` | PM client relationships, landlordId on properties |
+
+#### Features
+
+- **Client Selector**: PMs see dropdown to filter by client or view all
+- **Property Counts**: Each client shows how many properties they own
+- **Create for Client**: PMs can create properties on behalf of clients
+- **Permission Control**: `canCreateProperties` flag per relationship
+- **External Clients**: Support for landlords not on the platform
+
+#### Seed Data
+
+Robert (pm.robert@demo.com) now has 4 client relationships:
+- John Properties (landlord-1) - 2 properties, can create
+- Mike Estates (landlord-3) - 2 properties, can create
+- Sarah Realty (landlord-2) - 2 properties, view only
+- Patricia Chen (external) - 0 properties, can create
+
+---
+
+### Unit Templates - Quick Property Setup
+
+Added unit templates for quickly adding similar units with pre-filled values.
+
+#### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/db/schema/unitTemplates.ts` | Template storage schema |
+| `src/services/unitTemplates.ts` | Template CRUD operations |
+| `src/app/actions/unitTemplates.ts` | Server actions for templates |
+| `src/app/landlord/settings/templates/page.tsx` | Template management UI |
+| `src/components/AddUnitForm.tsx` | Client component with template pre-fill |
+
+#### Features
+
+- Create reusable templates with bed/bath/sqft/rent/features
+- Apply templates when adding new units
+- Manage templates from Settings page
+- Per-organization template isolation
+
+---
+
+### Properties Page - Table View
+
+Changed properties display from cards to a table showing units as rows.
+
+#### Changes
+
+- Units displayed as individual rows with property as a column
+- Columns: Property, Unit, Bed/Bath, Sq Ft, Rent, Status, Actions
+- Property names link to property detail page
+- Status badges with color coding
+- Edit button for each unit
+
+---
+
+### GitHub Issues Created
+
+- **#59**: Dashboard Phase 3 - per-card filters and date range selectors
+- **#60**: CSV bulk import for properties
+- **#61**: Allow users to have multiple roles
+
+---
+
+### Previous: Configurable Dashboard Card System
 
 Built a fully customizable dashboard where property managers can add, remove, resize, and reorder cards showing various metrics, charts, and lists.
 
