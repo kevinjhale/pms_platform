@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-01-15
 
 ## Project Overview
 
@@ -29,16 +29,80 @@ The platform now has:
 - Configurable dashboard with drag-and-drop card system
 - 19 card types across 4 categories (metrics, charts, lists, actions)
 - Per-user dashboard configuration persistence
-- **NEW: PM client relationships for multi-landlord management**
-- **NEW: Unit templates for quick property setup**
-- **NEW: Properties page table view with units as rows**
+- PM client relationships for multi-landlord management
+- Unit templates for quick property setup
+- Properties page table view with units as rows
+- **NEW: CSV bulk import for properties and units**
+- **NEW: Simplified sidebar navigation (direct links, no submenus)**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
 - Production deployment on DigitalOcean (halestormsw.com)
 
 ---
 
-## What Was Done This Session (2026-01-13)
+## What Was Done This Session (2026-01-15)
+
+### CSV Bulk Import for Properties (Issue #60 - Closed)
+
+Added multi-step wizard for importing properties and units from CSV files.
+
+#### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/lib/csvValidation.ts` | Validation rules, grouping logic, template generation |
+| `src/services/csvImport.ts` | Server-side database import operations |
+| `src/app/landlord/properties/import/page.tsx` | Import page with auth/PM client support |
+| `src/app/landlord/properties/import/ImportWizard.tsx` | Multi-step wizard component |
+| `src/app/landlord/properties/import/CSVUploader.tsx` | Drag-drop CSV upload with papaparse |
+| `src/app/landlord/properties/import/PreviewTable.tsx` | Data preview with row-level validation |
+| `src/app/landlord/properties/import/ImportProgress.tsx` | Progress bar and result display |
+| `src/app/api/properties/import/route.ts` | API endpoint for import operation |
+
+#### Features
+
+- **Multi-step wizard**: Upload → Preview → Confirm → Import → Results
+- **Client-side parsing**: Uses papaparse for CSV parsing
+- **Row-level validation**: Required fields, enums, formats (state codes, ZIP)
+- **Property grouping**: Units with same property info become one property
+- **PM client support**: Property managers can import for specific clients
+- **Template downloads**: Empty template and example CSV
+- **Error highlighting**: Invalid rows shown with expandable error details
+- **Transaction-per-property**: Each property imported atomically
+
+#### CSV Format
+
+One row per unit, property data repeated:
+```
+property_name,property_type,address,city,state,zip,year_built,property_description,
+unit_number,bedrooms,bathrooms,sqft,rent_amount,deposit_amount,status,features,unit_description
+```
+
+#### Dependencies Added
+
+- `papaparse@5.5.3` - CSV parsing
+- `@types/papaparse@5.5.2` - TypeScript types
+
+---
+
+### Sidebar UI Simplification
+
+Cleaned up the landlord sidebar navigation.
+
+#### Changes
+
+1. **Removed quick action badges** - The "+" badges on submenu items (Add Property, Create Listing, etc.)
+2. **Removed submenus** - Properties, Listings, Leases, Maintenance now link directly instead of expandable submenus
+3. **Kept Reports submenu** - Still has Dashboard and Rent Roll as children
+
+#### Before/After
+
+**Before**: Properties → [View All Properties, + Add Property]
+**After**: Properties → /landlord/properties (direct link)
+
+---
+
+## What Was Done Previous Session (2026-01-13)
 
 ### PM Client Relationships - Multi-Landlord Management
 
