@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
+import { getRoleContext } from "@/lib/role-context";
+import RoleSwitcher from "./RoleSwitcher";
 
 const navLinkStyle = {
     fontSize: '0.875rem',
@@ -11,6 +13,7 @@ const navLinkStyle = {
 
 export default async function Navbar() {
     const session = await auth();
+    const roleContext = session ? await getRoleContext() : null;
 
     return (
         <nav style={{
@@ -32,11 +35,19 @@ export default async function Navbar() {
                             <Link href="/dashboard" style={navLinkStyle}>
                                 Dashboard
                             </Link>
+                            {roleContext && roleContext.activeRole && (
+                                <RoleSwitcher
+                                    activeRole={roleContext.activeRole}
+                                    availableRoles={roleContext.availableRoles}
+                                />
+                            )}
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>{session.user?.name}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--secondary)', textTransform: 'capitalize' }}>
-                                    {(session.user as any)?.role}
-                                </div>
+                                {roleContext && roleContext.availableRoles.length < 2 && (
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--secondary)', textTransform: 'capitalize' }}>
+                                        {roleContext.activeRole}
+                                    </div>
+                                )}
                             </div>
                             <form action={async () => {
                                 "use server"

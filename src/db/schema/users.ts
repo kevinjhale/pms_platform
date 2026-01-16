@@ -27,6 +27,14 @@ export const organizationMembers = sqliteTable('organization_members', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
+// Platform roles junction table - allows users to have multiple roles
+export const userRoles = sqliteTable('user_roles', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role', { enum: ['renter', 'landlord', 'manager', 'maintenance'] }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
 export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -61,3 +69,6 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type OrganizationMember = typeof organizationMembers.$inferSelect;
 export type NewOrganizationMember = typeof organizationMembers.$inferInsert;
+export type UserRole = typeof userRoles.$inferSelect;
+export type NewUserRole = typeof userRoles.$inferInsert;
+export type PlatformRole = 'renter' | 'landlord' | 'manager' | 'maintenance';

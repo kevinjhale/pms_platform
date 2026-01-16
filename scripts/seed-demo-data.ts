@@ -21,6 +21,7 @@
 import { getDb } from '../src/db';
 import {
   users,
+  userRoles,
   organizations,
   organizationMembers,
   properties,
@@ -119,6 +120,48 @@ async function seed() {
       console.log(`  Updated user: ${user.email}`);
     }
   }
+
+  // ========================================
+  // USER ROLES (junction table for multi-role support)
+  // ========================================
+  console.log('\nCreating user roles...');
+
+  // Define roles for each user - some have multiple roles
+  type PlatformRole = 'renter' | 'landlord' | 'manager' | 'maintenance';
+  const userRolesData: { userId: string; roles: PlatformRole[] }[] = [
+    // Renters - single role
+    ...renters.map(r => ({ userId: r.id, roles: ['renter' as const] })),
+    // Landlords - John and Mike are single role, Sarah is dual role
+    { userId: 'landlord-1', roles: ['landlord'] },
+    { userId: 'landlord-2', roles: ['landlord', 'manager'] }, // Sarah is both landlord AND manager
+    { userId: 'landlord-3', roles: ['landlord'] },
+    // Managers - Lisa and Maria are single role, Robert is dual role
+    { userId: 'manager-1', roles: ['manager'] },
+    { userId: 'manager-2', roles: ['manager', 'landlord'] }, // Robert is both manager AND landlord
+    { userId: 'manager-3', roles: ['manager'] },
+    // Maintenance - single role
+    { userId: 'maintenance-1', roles: ['maintenance'] },
+  ];
+
+  // Clear existing roles and insert new ones
+  for (const userRole of userRolesData) {
+    // Delete existing roles for this user
+    await db.delete(userRoles).where(eq(userRoles.userId, userRole.userId));
+
+    // Insert new roles
+    for (const role of userRole.roles) {
+      await db.insert(userRoles).values({
+        id: generateId(),
+        userId: userRole.userId,
+        role,
+        createdAt: timestamp,
+      });
+    }
+    if (userRole.roles.length > 1) {
+      console.log(`  Created multi-role user: ${userRole.userId} (${userRole.roles.join(', ')})`);
+    }
+  }
+  console.log(`  Created ${userRolesData.reduce((acc, u) => acc + u.roles.length, 0)} role assignments`);
 
   // ========================================
   // ORGANIZATIONS
@@ -296,6 +339,25 @@ async function seed() {
       utilityTrash: 'Glendale Refuse',
       utilityElectricity: 'Glendale Water & Power',
     },
+
+    // Robert's property (manager-2 is also a landlord) - he owns this
+    {
+      id: 'prop-7',
+      orgId: 'org-pm-only',
+      landlordId: 'manager-2', // Robert owns this property
+      name: "Robert's Duplex",
+      address: '888 Burbank Blvd',
+      city: 'Burbank',
+      state: 'CA',
+      zip: '91502',
+      propertyType: 'multi_family' as const,
+      yearBuilt: 2008,
+      description: 'Well-maintained duplex in a great Burbank location',
+      apn: '2461-009-033',
+      utilityWater: 'Burbank Water & Power',
+      utilityTrash: 'Burbank Recycle Center',
+      utilityElectricity: 'Burbank Water & Power',
+    },
   ];
 
   for (const prop of propertiesData) {
@@ -351,6 +413,8 @@ async function seed() {
     { id: 'pm-assign-4', propertyId: 'prop-6', userId: 'manager-3', splitPercentage: 12, proposedBy: 'manager-2', status: 'accepted' as const },
     // Pending assignment - John considering a PM for Oak Street
     { id: 'pm-assign-5', propertyId: 'prop-2', userId: 'manager-1', splitPercentage: 8, proposedBy: 'manager-1', status: 'proposed' as const },
+    // Sarah (landlord-2) manages John's Sunset Apartments - she's both a landlord AND a manager!
+    { id: 'pm-assign-6', propertyId: 'prop-1', userId: 'landlord-2', splitPercentage: 10, proposedBy: 'landlord-1', status: 'accepted' as const },
   ];
 
   for (const pm of propertyManagersData) {
@@ -486,6 +550,10 @@ async function seed() {
     // Hillside Estates (prop-6) - 2 units
     { id: 'unit-19', propId: 'prop-6', unitNumber: '1', bed: 4, bath: 3, sqft: 2500, rent: 5500, status: 'occupied' as const, listedDaysAgo: 180 },
     { id: 'unit-20', propId: 'prop-6', unitNumber: '2', bed: 5, bath: 4, sqft: 3200, rent: 7500, status: 'available' as const, listedDaysAgo: 60 },
+
+    // Robert's Duplex (prop-7) - 2 units (Robert owns this as his landlord role)
+    { id: 'unit-21', propId: 'prop-7', unitNumber: 'A', bed: 2, bath: 1, sqft: 950, rent: 2200, status: 'occupied' as const, listedDaysAgo: 90 },
+    { id: 'unit-22', propId: 'prop-7', unitNumber: 'B', bed: 2, bath: 1, sqft: 950, rent: 2200, status: 'available' as const, listedDaysAgo: 15 },
   ];
 
   for (const unit of unitsData) {
@@ -609,6 +677,12 @@ async function seed() {
       paymentStatus: 'current' as const, cleaningFee: 500,
       coSigner: null,
     },
+    // Lease for Robert's Duplex (unit-21) - renter-10 (Jack) finally got a place!
+    {
+      id: 'lease-10', unitId: 'unit-21', tenantId: 'renter-10', rent: 2200, startDaysAgo: 75,
+      paymentStatus: 'current' as const, cleaningFee: 175,
+      coSigner: { name: 'Linda Anderson', email: 'linda.anderson@demo.com', phone: '(310) 555-9005' },
+    },
   ];
 
   for (const lease of leasesData) {
@@ -700,6 +774,10 @@ async function seed() {
     { id: 'charge-9-elec', leaseId: 'lease-9', category: 'electricity' as const, name: 'Electric', amountType: 'variable' as const, fixedAmount: null, estimatedAmount: 225 },
     { id: 'charge-9-gas', leaseId: 'lease-9', category: 'gas' as const, name: 'Gas', amountType: 'variable' as const, fixedAmount: null, estimatedAmount: 85 },
     { id: 'charge-9-pet', leaseId: 'lease-9', category: 'pet_fee' as const, name: 'Pet Fee', amountType: 'fixed' as const, fixedAmount: 50, estimatedAmount: null },
+
+    // Lease 10 (unit-21): Robert's duplex - standard utilities
+    { id: 'charge-10-wt', leaseId: 'lease-10', category: 'water_trash' as const, name: 'Water & Trash', amountType: 'fixed' as const, fixedAmount: 60, estimatedAmount: null },
+    { id: 'charge-10-elec', leaseId: 'lease-10', category: 'electricity' as const, name: 'Electric', amountType: 'variable' as const, fixedAmount: null, estimatedAmount: 90 },
   ];
 
   for (const charge of leaseChargesData) {
@@ -755,6 +833,7 @@ async function seed() {
     'lease-7': 15,  // Grace for 15 months
     'lease-8': 24,  // Henry for 2 years (has issues)
     'lease-9': 18,  // Iris for 18 months
+    'lease-10': 3,  // Jack - just moved in (Robert's duplex)
   };
 
   // Create 24 months of historical payments for each lease
@@ -1224,6 +1303,14 @@ async function seed() {
   managers.forEach(m => console.log(`  ${m.email}`));
   console.log('\nMaintenance Workers (password: any):');
   maintenanceWorkers.forEach(m => console.log(`  ${m.email}`));
+  console.log('\n' + '─'.repeat(50));
+  console.log('\nMulti-Role Users (can switch between roles):');
+  console.log('  sarah.realty@demo.com  - Landlord + Manager');
+  console.log('    • As Landlord: owns Marina View Complex & Downtown Lofts');
+  console.log('    • As Manager: manages John\'s Sunset Apartments (10% split)');
+  console.log('  pm.robert@demo.com     - Manager + Landlord');
+  console.log('    • As Manager: manages Valley Gardens for Mike');
+  console.log('    • As Landlord: owns Robert\'s Duplex in Burbank');
   console.log('\n' + '─'.repeat(50));
 }
 

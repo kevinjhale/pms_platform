@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
-import { getDb, users, type User, type NewUser } from '@/db';
+import { eq, and, inArray } from 'drizzle-orm';
+import { getDb, users, userRoles, type User, type NewUser, type PlatformRole } from '@/db';
 import { generateId, now } from '@/lib/utils';
 
 export async function createUser(data: {
@@ -100,4 +100,101 @@ export async function updateUserDefaultPage(userId: string, page: LandlordPage):
 export async function getUserDefaultPage(userId: string): Promise<LandlordPage> {
   const user = await getUserById(userId);
   return (user?.defaultLandlordPage as LandlordPage) || 'reports';
+}
+
+// ============================================================================
+// Multi-Role Management Functions
+// ============================================================================
+
+/**
+ * Get all platform roles for a user from the junction table
+ */
+export async function getUserRoles(userId: string): Promise<PlatformRole[]> {
+  const db = getDb();
+  const result = await db
+    .select({ role: userRoles.role })
+    .from(userRoles)
+    .where(eq(userRoles.userId, userId));
+
+  return result.map(r => r.role as PlatformRole);
+}
+
+/**
+ * Add a role to a user (if they don't already have it)
+ */
+export async function addUserRole(userId: string, role: PlatformRole): Promise<void> {
+  const db = getDb();
+
+  // Check if user already has this role
+  const existing = await db
+    .select()
+    .from(userRoles)
+    .where(and(eq(userRoles.userId, userId), eq(userRoles.role, role)))
+    .limit(1);
+
+  if (existing.length > 0) return;
+
+  // Add the role
+  await db.insert(userRoles).values({
+    id: generateId(),
+    userId,
+    role,
+    createdAt: now(),
+  });
+}
+
+/**
+ * Remove a role from a user
+ */
+export async function removeUserRole(userId: string, role: PlatformRole): Promise<void> {
+  const db = getDb();
+  await db
+    .delete(userRoles)
+    .where(and(eq(userRoles.userId, userId), eq(userRoles.role, role)));
+}
+
+/**
+ * Set all roles for a user (replaces existing roles)
+ */
+export async function setUserRoles(userId: string, roles: PlatformRole[]): Promise<void> {
+  const db = getDb();
+
+  // Delete all existing roles
+  await db.delete(userRoles).where(eq(userRoles.userId, userId));
+
+  // Insert new roles
+  if (roles.length > 0) {
+    const timestamp = now();
+    await db.insert(userRoles).values(
+      roles.map(role => ({
+        id: generateId(),
+        userId,
+        role,
+        createdAt: timestamp,
+      }))
+    );
+  }
+
+  // Also update the users.role to the first role (active role)
+  if (roles.length > 0) {
+    await updateUserRole(userId, roles[0]);
+  }
+}
+
+/**
+ * Check if a user has a specific role
+ */
+export async function hasRole(userId: string, role: PlatformRole): Promise<boolean> {
+  const db = getDb();
+  const result = await db
+    .select()
+    .from(userRoles)
+    .where(and(eq(userRoles.userId, userId), eq(userRoles.role, role)))
+    .limit(1);
+
+  if (result.length > 0) return true;
+
+  // Fall back to legacy single role check
+  const user = await getUserById(userId);
+  return user?.role === role;
 }

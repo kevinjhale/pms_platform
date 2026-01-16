@@ -8,11 +8,13 @@ import { checkAndAcceptPendingInvites } from "@/services/invites";
 declare module "next-auth" {
   interface User {
     role?: string;
+    roles?: string[];
   }
   interface Session {
     user: {
       id: string;
       role?: string;
+      roles?: string[];
       currentOrgId?: string;
     } & DefaultSession["user"];
   }
