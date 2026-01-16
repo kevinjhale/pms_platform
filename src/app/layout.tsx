@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,6 @@ export const metadata: Metadata = {
   title: "PMS Platform - Modern Property Management",
   description: "The all-in-one platform connecting renters, landlords, and property managers. Streamline operations, automate rent collection, and grow your portfolio.",
 };
-
-import Navbar from "@/components/Navbar";
 
 export default function RootLayout({
   children,

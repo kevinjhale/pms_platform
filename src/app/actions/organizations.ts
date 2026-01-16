@@ -8,7 +8,12 @@ import {
   addOrganizationMember,
   getUserOrganizations,
   getOrganizationBySlug,
+  getUserRoleInOrganization,
+  getOrganizationMembers,
+  updateOrganizationMemberRole,
+  removeOrganizationMember,
 } from '@/services/organizations';
+import { getOrgContext } from '@/lib/org-context';
 import { setCurrentOrganization } from '@/lib/org-context';
 import { slugify } from '@/lib/utils';
 
@@ -78,4 +83,105 @@ export async function inviteMemberAction(formData: FormData) {
   // For now, this is a placeholder
 
   revalidatePath('/admin/settings/team');
+}
+
+type OrgRole = 'owner' | 'admin' | 'manager' | 'staff';
+
+/**
+ * Update a member's role in the current organization
+ */
+export async function updateMemberRoleAction(
+  targetUserId: string,
+  newRole: 'admin' | 'manager' | 'staff'
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const { organization } = await getOrgContext();
+  if (!organization) {
+    return { success: false, error: 'No organization selected' };
+  }
+
+  // Check caller's role
+  const callerRole = await getUserRoleInOrganization(session.user.id, organization.id);
+  if (!callerRole || (callerRole !== 'owner' && callerRole !== 'admin')) {
+    return { success: false, error: 'You do not have permission to change member roles' };
+  }
+
+  // Get target's current role
+  const targetRole = await getUserRoleInOrganization(targetUserId, organization.id);
+  if (!targetRole) {
+    return { success: false, error: 'Member not found in organization' };
+  }
+
+  // Cannot change owner's role
+  if (targetRole === 'owner') {
+    return { success: false, error: 'Cannot change the owner\'s role' };
+  }
+
+  // Admins cannot promote to admin (only owners can)
+  if (callerRole === 'admin' && newRole === 'admin') {
+    return { success: false, error: 'Only owners can promote members to admin' };
+  }
+
+  // Admins cannot change other admins' roles
+  if (callerRole === 'admin' && targetRole === 'admin') {
+    return { success: false, error: 'Admins cannot change other admins\' roles' };
+  }
+
+  await updateOrganizationMemberRole(organization.id, targetUserId, newRole);
+
+  revalidatePath('/landlord/settings');
+  return { success: true };
+}
+
+/**
+ * Remove a member from the current organization
+ */
+export async function removeMemberAction(
+  targetUserId: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const { organization } = await getOrgContext();
+  if (!organization) {
+    return { success: false, error: 'No organization selected' };
+  }
+
+  // Cannot remove yourself
+  if (targetUserId === session.user.id) {
+    return { success: false, error: 'You cannot remove yourself from the organization' };
+  }
+
+  // Check caller's role
+  const callerRole = await getUserRoleInOrganization(session.user.id, organization.id);
+  if (!callerRole || (callerRole !== 'owner' && callerRole !== 'admin')) {
+    return { success: false, error: 'You do not have permission to remove members' };
+  }
+
+  // Get target's role
+  const targetRole = await getUserRoleInOrganization(targetUserId, organization.id);
+  if (!targetRole) {
+    return { success: false, error: 'Member not found in organization' };
+  }
+
+  // Cannot remove owner
+  if (targetRole === 'owner') {
+    return { success: false, error: 'Cannot remove the organization owner' };
+  }
+
+  // Admins cannot remove other admins
+  if (callerRole === 'admin' && targetRole === 'admin') {
+    return { success: false, error: 'Admins cannot remove other admins' };
+  }
+
+  await removeOrganizationMember(organization.id, targetUserId);
+
+  revalidatePath('/landlord/settings');
+  return { success: true };
 }

@@ -2,11 +2,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getOrgContext } from "@/lib/org-context";
-import { getUserById } from "@/services/users";
+import { getRoleContext } from "@/lib/role-context";
+import { getUserById, getUserRoles } from "@/services/users";
 import { getOrganizationMembersWithUsers, getUserRoleInOrganization } from "@/services/organizations";
 import { getPendingInvites } from "@/services/invites";
 import InviteForm from "./InviteForm";
 import RevokeInviteButton from "./RevokeInviteButton";
+import EditMemberButton from "./EditMemberButton";
+import RemoveMemberButton from "./RemoveMemberButton";
 import DefaultPageSelect from "./DefaultPageSelect";
 
 const PLATFORM_ROLE_LABELS: Record<string, string> = {
@@ -57,9 +60,11 @@ export default async function SettingsPage() {
   const userRole = await getUserRoleInOrganization(session.user.id, organization.id);
   const canInvite = userRole === "owner" || userRole === "admin";
 
-  const [members, pendingInvites] = await Promise.all([
+  const [members, pendingInvites, roleContext, platformRoles] = await Promise.all([
     getOrganizationMembersWithUsers(organization.id),
     canInvite ? getPendingInvites(organization.id) : [],
+    getRoleContext(),
+    getUserRoles(session.user.id),
   ]);
 
   return (
@@ -151,6 +156,115 @@ export default async function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* My Platform Roles Section */}
+      {platformRoles.length > 0 && (
+        <section style={{ marginBottom: "2.5rem" }}>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem" }}>
+            My Platform Roles
+          </h2>
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem" }}>
+              {platformRoles.map((role) => {
+                const isActive = roleContext.activeRole === role;
+                return (
+                  <div
+                    key={role}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "8px",
+                      backgroundColor: isActive ? "var(--primary)" : "var(--surface)",
+                      color: isActive ? "white" : "var(--foreground)",
+                      border: isActive ? "none" : "1px solid var(--border)",
+                    }}
+                  >
+                    <span>
+                      {role === "landlord" && "🏢"}
+                      {role === "manager" && "📋"}
+                      {role === "renter" && "🏠"}
+                      {role === "maintenance" && "🔧"}
+                    </span>
+                    <span style={{ fontWeight: "500" }}>
+                      {PLATFORM_ROLE_LABELS[role] || role}
+                    </span>
+                    {isActive && (
+                      <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>(active)</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Organizations for this user */}
+            {organizations.length > 0 && (
+              <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
+                <h4 style={{ fontSize: "0.875rem", fontWeight: "600", marginBottom: "0.75rem", color: "var(--secondary)" }}>
+                  My Organizations
+                </h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {organizations.map((membership) => {
+                    const isCurrentOrg = membership.organization.id === organization.id;
+                    const orgRoleStyle = ROLE_STYLES[membership.role] || ROLE_STYLES.staff;
+                    return (
+                      <div
+                        key={membership.organization.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "0.5rem 0.75rem",
+                          backgroundColor: isCurrentOrg ? "var(--surface)" : "transparent",
+                          borderRadius: "6px",
+                          border: isCurrentOrg ? "1px solid var(--primary)" : "1px solid transparent",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ fontWeight: "500", fontSize: "0.875rem" }}>
+                            {membership.organization.name}
+                          </span>
+                          {isCurrentOrg && (
+                            <span style={{
+                              fontSize: "0.65rem",
+                              padding: "0.125rem 0.375rem",
+                              borderRadius: "4px",
+                              backgroundColor: "#e0f2fe",
+                              color: "#0369a1",
+                            }}>
+                              current
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            padding: "0.125rem 0.5rem",
+                            borderRadius: "4px",
+                            fontSize: "0.7rem",
+                            fontWeight: "600",
+                            textTransform: "uppercase",
+                            backgroundColor: orgRoleStyle.bg,
+                            color: orgRoleStyle.color,
+                          }}
+                        >
+                          {membership.role}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {platformRoles.length > 1 && (
+              <p style={{ fontSize: "0.875rem", color: "var(--secondary)", marginTop: "1rem" }}>
+                You have {platformRoles.length} platform roles. Use the role switcher in the navbar to switch between them.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Unit Templates Section */}
       <section style={{ marginBottom: "2.5rem" }}>
@@ -285,6 +399,11 @@ export default async function SettingsPage() {
             {members.map(({ member, user: memberUser }) => {
               const roleStyle = ROLE_STYLES[member.role] || ROLE_STYLES.staff;
               const isCurrentUser = memberUser.id === session.user?.id;
+              const isOwner = member.role === "owner";
+              // Can edit/remove if: caller is owner/admin, target is not self, target is not owner
+              // Admins also cannot edit/remove other admins
+              const canEdit = canInvite && !isCurrentUser && !isOwner &&
+                (userRole === "owner" || member.role !== "admin");
               return (
                 <div
                   key={member.id}
@@ -343,19 +462,33 @@ export default async function SettingsPage() {
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <span
-                      style={{
-                        padding: "0.125rem 0.5rem",
-                        borderRadius: "4px",
-                        fontSize: "0.7rem",
-                        fontWeight: "600",
-                        textTransform: "uppercase",
-                        backgroundColor: roleStyle.bg,
-                        color: roleStyle.color,
-                      }}
-                    >
-                      {member.role}
-                    </span>
+                    {canEdit ? (
+                      <EditMemberButton
+                        userId={memberUser.id}
+                        currentRole={member.role as 'owner' | 'admin' | 'manager' | 'staff'}
+                        callerRole={userRole as 'owner' | 'admin' | 'manager' | 'staff'}
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          padding: "0.125rem 0.5rem",
+                          borderRadius: "4px",
+                          fontSize: "0.7rem",
+                          fontWeight: "600",
+                          textTransform: "uppercase",
+                          backgroundColor: roleStyle.bg,
+                          color: roleStyle.color,
+                        }}
+                      >
+                        {member.role}
+                      </span>
+                    )}
+                    {canEdit && (
+                      <RemoveMemberButton
+                        userId={memberUser.id}
+                        memberName={memberUser.name || memberUser.email}
+                      />
+                    )}
                     <span style={{ fontSize: "0.75rem", color: "var(--secondary)" }}>
                       Joined {formatDate(member.createdAt)}
                     </span>
