@@ -463,6 +463,84 @@ export async function sendRentReminderEmail(params: {
   });
 }
 
+// PM Assignment Proposed (to PM)
+export async function sendPMAssignmentProposedEmail(params: {
+  to: string;
+  pmName: string;
+  propertyName: string;
+  propertyAddress: string;
+  splitPercentage: number;
+  proposerName: string;
+} & OrgEmailParams): Promise<boolean> {
+  const reviewUrl = `${APP_URL}/landlord/assignments`;
+  const { appName } = await getEmailSettings(params.organizationId);
+
+  const content = `
+    <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #0f172a;">New Property Assignment</h2>
+    <p style="margin: 0 0 16px; font-size: 16px; color: #334155; line-height: 1.6;">
+      Hi ${params.pmName},
+    </p>
+    <p style="margin: 0 0 24px; font-size: 16px; color: #334155; line-height: 1.6;">
+      <strong>${params.proposerName}</strong> has proposed a property management assignment for you.
+    </p>
+    <div style="margin: 16px 0; padding: 16px; background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #2563eb;">
+      <p style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #0f172a;">${params.propertyName}</p>
+      <p style="margin: 0 0 8px; font-size: 14px; color: #64748b;">${params.propertyAddress}</p>
+      <p style="margin: 0; font-size: 14px; color: #64748b;">
+        Commission: <span style="color: #2563eb; font-weight: 600;">${params.splitPercentage}%</span>
+      </p>
+    </div>
+    <a href="${reviewUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">
+      Review Assignment
+    </a>
+  `;
+
+  return sendEmail({
+    to: params.to,
+    subject: `New Property Assignment: ${params.propertyName}`,
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
+  });
+}
+
+// PM Assignment Response (to landlord)
+export async function sendPMAssignmentResponseEmail(params: {
+  to: string;
+  landlordName: string;
+  pmName: string;
+  propertyName: string;
+  accepted: boolean;
+} & OrgEmailParams): Promise<boolean> {
+  const viewUrl = `${APP_URL}/landlord/properties`;
+  const { appName } = await getEmailSettings(params.organizationId);
+
+  const statusColor = params.accepted ? '#16a34a' : '#dc2626';
+  const statusText = params.accepted ? 'Accepted' : 'Declined';
+  const statusMessage = params.accepted
+    ? `<strong>${params.pmName}</strong> has accepted the property management assignment for <strong>${params.propertyName}</strong>. They can now manage this property on your behalf.`
+    : `<strong>${params.pmName}</strong> has declined the property management assignment for <strong>${params.propertyName}</strong>. You may want to reach out to discuss or assign another manager.`;
+
+  const content = `
+    <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: ${statusColor};">Assignment ${statusText}</h2>
+    <p style="margin: 0 0 16px; font-size: 16px; color: #334155; line-height: 1.6;">
+      Hi ${params.landlordName},
+    </p>
+    <p style="margin: 0 0 24px; font-size: 16px; color: #334155; line-height: 1.6;">
+      ${statusMessage}
+    </p>
+    <a href="${viewUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">
+      View Properties
+    </a>
+  `;
+
+  return sendEmail({
+    to: params.to,
+    subject: `PM Assignment ${statusText}: ${params.propertyName}`,
+    html: emailWrapper(content, appName),
+    organizationId: params.organizationId,
+  });
+}
+
 // Lease Expiring Soon
 export async function sendLeaseExpiringEmail(params: {
   to: string;

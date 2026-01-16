@@ -3,7 +3,9 @@
 import { auth } from '@/lib/auth';
 import { getOrgContext } from '@/lib/org-context';
 import { revalidatePath } from 'next/cache';
-import { assignPropertyManager } from '@/services/properties';
+import { assignPropertyManager, getPropertyById } from '@/services/properties';
+import { getUserById } from '@/services/users';
+import { sendPMAssignmentProposedEmail } from '@/services/email';
 
 export async function assignPropertyManagerAction(
   propertyId: string,
@@ -14,7 +16,7 @@ export async function assignPropertyManagerAction(
     return { success: false, error: 'Not authenticated' };
   }
 
-  const { role } = await getOrgContext();
+  const { organization, role } = await getOrgContext();
 
   // Only owners and admins can assign PMs
   if (role !== 'owner' && role !== 'admin') {
@@ -44,6 +46,25 @@ export async function assignPropertyManagerAction(
       splitPercentage,
       proposedBy: session.user.id,
     });
+
+    // Send notification email to the PM
+    const [property, pmUser] = await Promise.all([
+      getPropertyById(propertyId),
+      getUserById(userId),
+    ]);
+
+    if (property && pmUser?.email) {
+      const proposerName = session.user.name || session.user.email || 'A landlord';
+      await sendPMAssignmentProposedEmail({
+        to: pmUser.email,
+        pmName: pmUser.name || pmUser.email,
+        propertyName: property.name,
+        propertyAddress: `${property.address}, ${property.city}, ${property.state} ${property.zip}`,
+        splitPercentage,
+        proposerName,
+        organizationId: organization?.id,
+      });
+    }
 
     revalidatePath(`/landlord/properties/${propertyId}`);
     revalidatePath('/landlord/assignments');

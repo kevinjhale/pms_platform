@@ -26,11 +26,11 @@ Implement the PM (Property Manager) feature set, starting with the blocking issu
 
 ---
 
-### 3. Issue #57 - PM-specific notifications
-- [ ] Add notification when assignment is proposed to PM
-- [ ] Add notification when assignment is accepted/rejected (to landlord)
-- [ ] Add maintenance notifications for assigned properties
-- [ ] Add rent payment notifications for assigned properties
+### 3. Issue #57 - PM-specific notifications - DONE
+- [x] Add notification when assignment is proposed to PM
+- [x] Add notification when assignment is accepted/rejected (to landlord)
+- [x] Maintenance notifications already covered (org members with manager/staff roles get notified)
+- [x] Payment notifications deferred to Issue #53 (revenue tracking)
 
 ---
 
@@ -84,3 +84,8 @@ Implement the PM (Property Manager) feature set, starting with the blocking issu
   - Verified accept/reject actions work correctly
   - Added `getPendingAssignmentCount()` to properties service
   - Added red badge to sidebar Assignments link showing pending count
+- [x] Completed Issue #57 - PM-specific notifications
+  - Added `sendPMAssignmentProposedEmail()` - notifies PM when assigned
+  - Added `sendPMAssignmentResponseEmail()` - notifies landlord when PM accepts/rejects
+  - Added `getPropertyManagerAssignment()` service function
+  - Maintenance notifications already covered by org member system

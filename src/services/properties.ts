@@ -494,6 +494,16 @@ export async function getPropertyManagers(propertyId: string) {
     .where(eq(propertyManagers.propertyId, propertyId));
 }
 
+export async function getPropertyManagerAssignment(assignmentId: string) {
+  const db = getDb();
+  const result = await db
+    .select()
+    .from(propertyManagers)
+    .where(eq(propertyManagers.id, assignmentId))
+    .limit(1);
+  return result[0] || null;
+}
+
 export async function getPropertyManagersWithUsers(propertyId: string) {
   const db = getDb();
   return db
