@@ -5,6 +5,7 @@ import { getOrgContext } from "@/lib/org-context";
 import { getUserById, getUserRoles } from "@/services/users";
 import { getOrganizationMembersWithUsers, getUserRoleInOrganization } from "@/services/organizations";
 import { getPendingInvites } from "@/services/invites";
+import { getPmClients } from "@/services/pmClients";
 import InviteForm from "./InviteForm";
 import RevokeInviteButton from "./RevokeInviteButton";
 import EditMemberButton from "./EditMemberButton";
@@ -64,6 +65,10 @@ export default async function SettingsPage() {
     canInvite ? getPendingInvites(organization.id) : [],
     getUserRoles(session.user.id),
   ]);
+
+  // Fetch PM clients if user has manager role
+  const isPropertyManager = platformRoles.includes('manager');
+  const pmClients = isPropertyManager ? await getPmClients(session.user.id) : [];
 
   return (
     <main className="container" style={{ paddingTop: "4rem", paddingBottom: "4rem" }}>
@@ -242,6 +247,110 @@ export default async function SettingsPage() {
                 You have access to all features for your {platformRoles.length} platform roles.
               </p>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* My Clients Section - Only for Property Managers */}
+      {isPropertyManager && pmClients.length > 0 && (
+        <section style={{ marginBottom: "2.5rem" }}>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem" }}>
+            My Clients
+            <span style={{ fontSize: "0.875rem", fontWeight: "normal", color: "var(--secondary)", marginLeft: "0.5rem" }}>
+              ({pmClients.length} client{pmClients.length !== 1 ? 's' : ''})
+            </span>
+          </h2>
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <p style={{ color: "var(--secondary)", fontSize: "0.875rem", marginBottom: "1rem" }}>
+              Landlords whose properties you manage as a property manager.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {pmClients.map((client) => (
+                <div
+                  key={client.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.75rem 1rem",
+                    backgroundColor: "var(--surface)",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        backgroundColor: client.landlordUserId ? "var(--primary)" : "var(--secondary)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                        color: "white",
+                      }}
+                    >
+                      {client.displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: "500", fontSize: "0.875rem" }}>
+                        {client.displayName}
+                        {!client.landlordUserId && (
+                          <span style={{
+                            fontSize: "0.65rem",
+                            marginLeft: "0.5rem",
+                            padding: "0.125rem 0.375rem",
+                            borderRadius: "4px",
+                            backgroundColor: "#f3f4f6",
+                            color: "#6b7280",
+                          }}>
+                            External
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--secondary)" }}>
+                        {client.organizationName || 'No organization'}
+                        {client.propertyCount > 0 && (
+                          <span> · {client.propertyCount} propert{client.propertyCount !== 1 ? 'ies' : 'y'}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    {client.canCreateProperties ? (
+                      <span
+                        style={{
+                          padding: "0.125rem 0.5rem",
+                          borderRadius: "4px",
+                          fontSize: "0.65rem",
+                          fontWeight: "600",
+                          backgroundColor: "#d1fae5",
+                          color: "#047857",
+                        }}
+                      >
+                        Can Create
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          padding: "0.125rem 0.5rem",
+                          borderRadius: "4px",
+                          fontSize: "0.65rem",
+                          fontWeight: "600",
+                          backgroundColor: "#e5e7eb",
+                          color: "#6b7280",
+                        }}
+                      >
+                        View Only
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
