@@ -349,3 +349,54 @@ export async function getMaskedSettingsAction(
 
   return getMaskedSettings(context.organizationId, integration);
 }
+
+// ============= Storage Actions =============
+
+export async function saveStorageSettingsAction(
+  _prevState: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const context = await requireOrgAdmin();
+  if (!context) {
+    return { success: false, error: 'Permission denied' };
+  }
+
+  const provider = formData.get('provider') as string;
+  const bucket = formData.get('bucket') as string;
+  const region = formData.get('region') as string;
+  const endpoint = formData.get('endpoint') as string;
+  const accessKeyId = formData.get('accessKeyId') as string;
+  const secretAccessKey = formData.get('secretAccessKey') as string;
+  const publicUrl = formData.get('publicUrl') as string;
+
+  // Validate cloud provider settings
+  if (provider !== 'local') {
+    if (!bucket) {
+      return { success: false, error: 'Bucket name is required for cloud storage' };
+    }
+    if (!accessKeyId || !secretAccessKey) {
+      return { success: false, error: 'Access credentials are required for cloud storage' };
+    }
+    if ((provider === 'r2' || provider === 'do_spaces') && !endpoint) {
+      return { success: false, error: 'Custom endpoint is required for R2 and DigitalOcean Spaces' };
+    }
+  }
+
+  try {
+    await setIntegrationSettings(context.organizationId, 'storage', {
+      provider: provider as 'local' | 's3' | 'r2' | 'do_spaces',
+      bucket: bucket || undefined,
+      region: region || undefined,
+      endpoint: endpoint || undefined,
+      accessKeyId: accessKeyId || undefined,
+      secretAccessKey: secretAccessKey || undefined,
+      publicUrl: publicUrl || undefined,
+    });
+
+    revalidatePath('/landlord/settings/integrations');
+    return { success: true };
+  } catch (error) {
+    console.error('[Integrations] Failed to save storage settings:', error);
+    return { success: false, error: 'Failed to save settings' };
+  }
+}

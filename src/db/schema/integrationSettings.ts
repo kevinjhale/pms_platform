@@ -15,7 +15,7 @@ export const integrationSettings = sqliteTable(
 
     // Which integration this setting belongs to
     integrationKey: text('integration_key', {
-      enum: ['stripe', 'smtp', 'oauth_google', 'oauth_github'],
+      enum: ['stripe', 'smtp', 'oauth_google', 'oauth_github', 'storage'],
     }).notNull(),
 
     // Setting key within the integration (e.g., 'secretKey', 'host')

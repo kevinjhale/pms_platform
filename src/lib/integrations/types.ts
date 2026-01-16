@@ -37,6 +37,19 @@ export interface OAuthGithubSettings {
 }
 
 /**
+ * Storage integration settings
+ */
+export interface StorageSettings {
+  provider: 'local' | 's3' | 'r2' | 'do_spaces';
+  bucket: string;
+  region: string;
+  endpoint: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  publicUrl: string;
+}
+
+/**
  * Map of all integration types
  */
 export interface IntegrationSettingsMap {
@@ -44,6 +57,7 @@ export interface IntegrationSettingsMap {
   smtp: Partial<SmtpSettings>;
   oauth_google: Partial<OAuthGoogleSettings>;
   oauth_github: Partial<OAuthGithubSettings>;
+  storage: Partial<StorageSettings>;
 }
 
 export type IntegrationKey = keyof IntegrationSettingsMap;
@@ -56,6 +70,7 @@ export const ENCRYPTED_FIELDS: Record<IntegrationKey, string[]> = {
   smtp: ['pass'],
   oauth_google: ['clientSecret'],
   oauth_github: ['clientSecret'],
+  storage: ['secretAccessKey'],
 };
 
 /**
@@ -66,6 +81,7 @@ export const INTEGRATION_NAMES: Record<IntegrationKey, string> = {
   smtp: 'Email (SMTP)',
   oauth_google: 'Google OAuth',
   oauth_github: 'GitHub OAuth',
+  storage: 'Document Storage',
 };
 
 /**
@@ -74,10 +90,11 @@ export const INTEGRATION_NAMES: Record<IntegrationKey, string> = {
 export interface FieldMeta {
   key: string;
   label: string;
-  type: 'text' | 'password' | 'number' | 'boolean';
+  type: 'text' | 'password' | 'number' | 'boolean' | 'select';
   placeholder?: string;
   helpText?: string;
   required?: boolean;
+  options?: { value: string; label: string }[];
 }
 
 export const STRIPE_FIELDS: FieldMeta[] = [
@@ -200,5 +217,69 @@ export const OAUTH_GITHUB_FIELDS: FieldMeta[] = [
     placeholder: 'abc123...',
     helpText: 'GitHub OAuth App client secret',
     required: true,
+  },
+];
+
+export const STORAGE_FIELDS: FieldMeta[] = [
+  {
+    key: 'provider',
+    label: 'Storage Provider',
+    type: 'select',
+    helpText: 'Where to store uploaded files',
+    required: true,
+    options: [
+      { value: 'local', label: 'Local Filesystem' },
+      { value: 's3', label: 'AWS S3' },
+      { value: 'r2', label: 'Cloudflare R2' },
+      { value: 'do_spaces', label: 'DigitalOcean Spaces' },
+    ],
+  },
+  {
+    key: 'bucket',
+    label: 'Bucket Name',
+    type: 'text',
+    placeholder: 'my-pms-documents',
+    helpText: 'S3/R2/Spaces bucket name',
+    required: false,
+  },
+  {
+    key: 'region',
+    label: 'Region',
+    type: 'text',
+    placeholder: 'us-east-1 or auto',
+    helpText: 'AWS region (use "auto" for R2)',
+    required: false,
+  },
+  {
+    key: 'endpoint',
+    label: 'Custom Endpoint',
+    type: 'text',
+    placeholder: 'https://xxx.r2.cloudflarestorage.com',
+    helpText: 'Required for R2 and DigitalOcean Spaces',
+    required: false,
+  },
+  {
+    key: 'accessKeyId',
+    label: 'Access Key ID',
+    type: 'text',
+    placeholder: 'AKIA...',
+    helpText: 'S3-compatible access key',
+    required: false,
+  },
+  {
+    key: 'secretAccessKey',
+    label: 'Secret Access Key',
+    type: 'password',
+    placeholder: 'Your secret key',
+    helpText: 'S3-compatible secret key',
+    required: false,
+  },
+  {
+    key: 'publicUrl',
+    label: 'Public URL (Optional)',
+    type: 'text',
+    placeholder: 'https://cdn.example.com',
+    helpText: 'CDN or public URL prefix for files',
+    required: false,
   },
 ];

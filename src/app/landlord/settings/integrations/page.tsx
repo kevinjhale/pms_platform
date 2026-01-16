@@ -11,6 +11,8 @@ import {
 import StripeSettingsForm from './StripeSettingsForm';
 import SmtpSettingsForm from './SmtpSettingsForm';
 import OAuthSettingsForm from './OAuthSettingsForm';
+import StorageSettingsForm from './StorageSettingsForm';
+import { getIntegrationSettings } from '@/services/integrationSettings';
 
 export default async function IntegrationsPage() {
   const session = await auth();
@@ -25,12 +27,17 @@ export default async function IntegrationsPage() {
   }
 
   // Check which integrations have custom settings
-  const [hasStripe, hasSmtp, hasOAuthGoogle, hasOAuthGithub] = await Promise.all([
+  const [hasStripe, hasSmtp, hasOAuthGoogle, hasOAuthGithub, hasStorage] = await Promise.all([
     hasIntegrationSettings(organization.id, 'stripe'),
     hasIntegrationSettings(organization.id, 'smtp'),
     hasIntegrationSettings(organization.id, 'oauth_google'),
     hasIntegrationSettings(organization.id, 'oauth_github'),
+    hasIntegrationSettings(organization.id, 'storage'),
   ]);
+
+  const storageSettings = hasStorage
+    ? await getIntegrationSettings(organization.id, 'storage')
+    : { provider: 'local' };
 
   const envDefaults = getEnvDefaults();
 
@@ -95,6 +102,13 @@ export default async function IntegrationsPage() {
         hasGithubSettings={hasOAuthGithub}
         envHasGoogleDefaults={!!envDefaults.oauth_google.clientId}
         envHasGithubDefaults={!!envDefaults.oauth_github.clientId}
+      />
+
+      {/* Storage Settings */}
+      <StorageSettingsForm
+        organizationId={organization.id}
+        hasCustomSettings={hasStorage}
+        currentProvider={storageSettings.provider || 'local'}
       />
 
       {/* Footer Note */}

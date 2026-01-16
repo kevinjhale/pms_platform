@@ -8,6 +8,7 @@ import {
   ENCRYPTED_FIELDS,
   StripeSettings,
   SmtpSettings,
+  StorageSettings,
 } from '@/lib/integrations/types';
 
 /**
@@ -241,6 +242,15 @@ export function getEnvDefaults(): IntegrationSettingsMap {
       clientId: process.env.AUTH_GITHUB_ID || '',
       clientSecret: process.env.AUTH_GITHUB_SECRET || '',
     },
+    storage: {
+      provider: (process.env.STORAGE_PROVIDER as StorageSettings['provider']) || 'local',
+      bucket: process.env.STORAGE_BUCKET || '',
+      region: process.env.STORAGE_REGION || '',
+      endpoint: process.env.STORAGE_ENDPOINT || '',
+      accessKeyId: process.env.STORAGE_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY || '',
+      publicUrl: process.env.STORAGE_PUBLIC_URL || '',
+    },
   };
 }
 
@@ -259,6 +269,8 @@ export function envHasDefaults(integrationKey: IntegrationKey): boolean {
       return !!defaults.oauth_google.clientId;
     case 'oauth_github':
       return !!defaults.oauth_github.clientId;
+    case 'storage':
+      return !!defaults.storage?.provider && defaults.storage.provider !== 'local';
     default:
       return false;
   }
