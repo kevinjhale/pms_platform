@@ -27,19 +27,13 @@ const navItems: NavItem[] = [
   },
   {
     label: 'Properties',
+    href: '/landlord/properties',
     icon: '\u2616', // Building
-    children: [
-      { label: 'View All Properties', href: '/landlord/properties' },
-      { label: 'Add Property', href: '/landlord/properties/new' },
-    ],
   },
   {
     label: 'Listings',
+    href: '/landlord/listings',
     icon: '\u2606', // Star
-    children: [
-      { label: 'View Listings', href: '/landlord/listings' },
-      { label: 'Create Listing', href: '/landlord/listings/new' },
-    ],
   },
   {
     label: 'Applications',
@@ -48,19 +42,13 @@ const navItems: NavItem[] = [
   },
   {
     label: 'Leases',
+    href: '/landlord/leases',
     icon: '\u270D', // Writing hand
-    children: [
-      { label: 'View Leases', href: '/landlord/leases' },
-      { label: 'Create Lease', href: '/landlord/leases/new' },
-    ],
   },
   {
     label: 'Maintenance',
+    href: '/landlord/maintenance',
     icon: '\u2692', // Hammer and wrench
-    children: [
-      { label: 'View Requests', href: '/landlord/maintenance' },
-      { label: 'Create Ticket', href: '/landlord/maintenance/new' },
-    ],
   },
   {
     label: 'Reports',
