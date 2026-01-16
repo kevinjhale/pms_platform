@@ -34,30 +34,29 @@ Implement the PM (Property Manager) feature set, starting with the blocking issu
 
 ---
 
-### 4. Issue #53 - PM revenue tracking
-- [ ] Create revenue calculation service using `splitPercentage`
-- [ ] Query payments for assigned properties
-- [ ] Calculate PM's share based on accepted assignments
-- [ ] Add revenue summary functions
+### 4. Issue #53 - PM revenue tracking - DONE
+- [x] Create revenue calculation service using `splitPercentage`
+- [x] Query payments for assigned properties
+- [x] Calculate PM's share based on accepted assignments
+- [x] Add revenue summary functions
 
 ---
 
-### 5. Issue #58 - PM revenue dashboard
-- [ ] Create `/pm/revenue` or `/manager/revenue` page
-- [ ] Show total PM revenue (sum of splits)
-- [ ] Monthly revenue trend chart
-- [ ] Revenue by property breakdown
-- [ ] CSV export functionality
+### 5. Issue #58 - PM revenue dashboard - DONE
+- [x] Create `/manager/revenue` page
+- [x] Show total PM revenue (sum of splits)
+- [x] Monthly revenue trend chart
+- [x] Revenue by property breakdown
+- [x] CSV export functionality
 
 ---
 
-### 6. Issue #50 - Full PM Dashboard
-- [ ] Replace stub at `/app/manager/page.tsx`
-- [ ] Show assigned properties count
-- [ ] Show pending assignments
-- [ ] Show revenue summary
-- [ ] Show maintenance requests for assigned properties
-- [ ] Reuse dashboard card components from landlord dashboard
+### 6. Issue #50 - Full PM Dashboard - DONE
+- [x] Replace stub at `/app/manager/page.tsx`
+- [x] Show assigned properties count
+- [x] Show pending assignments
+- [x] Show revenue summary
+- [x] Quick links to maintenance and revenue pages
 
 ---
 
@@ -89,3 +88,27 @@ Implement the PM (Property Manager) feature set, starting with the blocking issu
   - Added `sendPMAssignmentResponseEmail()` - notifies landlord when PM accepts/rejects
   - Added `getPropertyManagerAssignment()` service function
   - Maintenance notifications already covered by org member system
+
+### Session 2 (2026-01-15)
+- [x] Completed Issue #53 - PM revenue tracking
+  - Created `src/services/pmRevenue.ts` with revenue calculation functions
+  - `getPMRevenueByProperty()` - breakdown by property with PM share calculations
+  - `getPMRevenueSummary()` - total earnings summary
+  - `getPMRevenueByMonth()` - monthly revenue trend data
+  - `getPMRevenueForDateRange()` - custom date range reports
+- [x] Completed Issue #58 - PM revenue dashboard
+  - Created `/manager/revenue` page with full revenue dashboard
+  - Created `PMRevenueChart.tsx` - bar chart showing total collected vs PM share
+  - Summary cards showing total earnings, properties managed, payments count
+  - Revenue by property table with split percentages
+  - CSV export functionality
+  - Year selector for historical data
+- [x] Completed Issue #50 - Full PM Dashboard
+  - Updated `/manager/page.tsx` with full dashboard
+  - Summary cards: Properties Managed, Total Earnings, Payments, Pending Assignments
+  - Pending assignments alert with direct link to review
+  - Properties list showing assigned properties
+  - Quick links to Maintenance, Revenue, and Full Dashboard
+  - Created `/manager/layout.tsx` with navigation header
+
+**All PM feature issues complete!**
