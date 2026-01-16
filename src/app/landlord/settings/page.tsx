@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getOrgContext } from "@/lib/org-context";
-import { getRoleContext } from "@/lib/role-context";
 import { getUserById, getUserRoles } from "@/services/users";
 import { getOrganizationMembersWithUsers, getUserRoleInOrganization } from "@/services/organizations";
 import { getPendingInvites } from "@/services/invites";
@@ -60,10 +59,9 @@ export default async function SettingsPage() {
   const userRole = await getUserRoleInOrganization(session.user.id, organization.id);
   const canInvite = userRole === "owner" || userRole === "admin";
 
-  const [members, pendingInvites, roleContext, platformRoles] = await Promise.all([
+  const [members, pendingInvites, platformRoles] = await Promise.all([
     getOrganizationMembersWithUsers(organization.id),
     canInvite ? getPendingInvites(organization.id) : [],
-    getRoleContext(),
     getUserRoles(session.user.id),
   ]);
 
@@ -164,38 +162,31 @@ export default async function SettingsPage() {
             My Platform Roles
           </h2>
           <div className="card" style={{ padding: "1.5rem" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem" }}>
-              {platformRoles.map((role) => {
-                const isActive = roleContext.activeRole === role;
-                return (
-                  <div
-                    key={role}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      padding: "0.5rem 1rem",
-                      borderRadius: "8px",
-                      backgroundColor: isActive ? "var(--primary)" : "var(--surface)",
-                      color: isActive ? "white" : "var(--foreground)",
-                      border: isActive ? "none" : "1px solid var(--border)",
-                    }}
-                  >
-                    <span>
-                      {role === "landlord" && "🏢"}
-                      {role === "manager" && "📋"}
-                      {role === "renter" && "🏠"}
-                      {role === "maintenance" && "🔧"}
-                    </span>
-                    <span style={{ fontWeight: "500" }}>
-                      {PLATFORM_ROLE_LABELS[role] || role}
-                    </span>
-                    {isActive && (
-                      <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>(active)</span>
-                    )}
-                  </div>
-                );
-              })}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+              {platformRoles.map((role) => (
+                <div
+                  key={role}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "8px",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <span>
+                    {role === "landlord" && "🏢"}
+                    {role === "manager" && "📋"}
+                    {role === "renter" && "🏠"}
+                    {role === "maintenance" && "🔧"}
+                  </span>
+                  <span style={{ fontWeight: "500" }}>
+                    {PLATFORM_ROLE_LABELS[role] || role}
+                  </span>
+                </div>
+              ))}
             </div>
 
             {/* Organizations for this user */}
@@ -259,7 +250,7 @@ export default async function SettingsPage() {
 
             {platformRoles.length > 1 && (
               <p style={{ fontSize: "0.875rem", color: "var(--secondary)", marginTop: "1rem" }}>
-                You have {platformRoles.length} platform roles. Use the role switcher in the navbar to switch between them.
+                You have access to all features for your {platformRoles.length} platform roles.
               </p>
             )}
           </div>

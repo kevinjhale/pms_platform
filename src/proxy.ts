@@ -5,47 +5,42 @@ import type { NextRequest } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
-const ROLE_COOKIE_NAME = 'pms_active_role';
-
 export const proxy = auth((req) => {
   const isLoggedIn = !!req.auth;
   const { nextUrl } = req;
 
-  // Get active role from cookie first (fast), then fall back to session
-  const cookieRole = req.cookies.get(ROLE_COOKIE_NAME)?.value;
+  // Get all roles for the user from session
   const sessionRole = (req.auth?.user as { role?: string })?.role;
-  const activeRole = cookieRole || sessionRole;
-
-  // Get all available roles for the user (for checking access)
   const availableRoles = (req.auth?.user as { roles?: string[] })?.roles || [];
-  const hasRole = (role: string) => availableRoles.includes(role) || activeRole === role;
 
-  // Protect Dashboard Routes
+  // Check if user has a specific role (either in roles array or as their primary role)
+  const hasRole = (role: string) => availableRoles.includes(role) || sessionRole === role;
+
+  // Protect Dashboard Routes - check if user HAS the role (not just active role)
   if (nextUrl.pathname.startsWith("/renter")) {
     if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
-    // User must have renter role AND it must be their active role
-    if (activeRole !== "renter")
+    if (!hasRole("renter"))
       return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   if (nextUrl.pathname.startsWith("/landlord")) {
     if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
-    // User's active role must be landlord or manager
-    if (activeRole !== "landlord" && activeRole !== "manager")
+    // User must have landlord or manager role
+    if (!hasRole("landlord") && !hasRole("manager"))
       return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   if (nextUrl.pathname.startsWith("/manager")) {
     if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
-    // User's active role must be manager (or landlord who also manages)
-    if (activeRole !== "manager" && activeRole !== "landlord")
+    // User must have manager or landlord role
+    if (!hasRole("manager") && !hasRole("landlord"))
       return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   if (nextUrl.pathname.startsWith("/maintenance")) {
     if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
-    // Maintenance workers and managers/landlords can access maintenance routes
-    if (activeRole !== "maintenance" && activeRole !== "manager" && activeRole !== "landlord")
+    // Maintenance workers, managers, and landlords can access maintenance routes
+    if (!hasRole("maintenance") && !hasRole("manager") && !hasRole("landlord"))
       return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 

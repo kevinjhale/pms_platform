@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getOrgContext } from "@/lib/org-context";
-import { getUserById } from "@/services/users";
+import { getUserById, getUserRoles } from "@/services/users";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -10,51 +10,54 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Get user's role from database (more reliable than session for new users)
-  const user = await getUserById(session.user.id);
-  const role = user?.role || session.user.role;
+  // Get user's roles from database
+  const [user, userRoles] = await Promise.all([
+    getUserById(session.user.id),
+    getUserRoles(session.user.id),
+  ]);
 
-  // If user hasn't selected a role yet, redirect to role selection
-  // (Demo users have hardcoded roles in auth config, so they skip this)
-  if (!role) {
+  // Include legacy single role if no roles in junction table
+  const roles = userRoles.length > 0 ? userRoles : (user?.role ? [user.role] : []);
+
+  // If user hasn't selected any roles yet, redirect to role selection
+  if (roles.length === 0) {
     redirect("/select-role");
   }
 
-  // Renters don't need organizations - direct them to renter dashboard
-  if (role === 'renter') {
-    redirect("/renter");
+  // Helper to check if user has a role
+  const hasRole = (role: string) => roles.includes(role as any);
+
+  // Priority routing based on roles (landlord/manager first, then maintenance, then renter)
+  // Users with landlord or manager role go to landlord dashboard
+  if (hasRole('landlord') || hasRole('manager')) {
+    const { organizations } = await getOrgContext();
+
+    // If no organizations, redirect to onboarding
+    if (organizations.length === 0) {
+      redirect("/onboarding");
+    }
+
+    redirect("/landlord");
   }
 
   // Maintenance workers go to maintenance dashboard
-  if (role === 'maintenance') {
+  if (hasRole('maintenance')) {
     redirect("/maintenance");
   }
 
-  // Landlords and managers need organizations
-  const { organization, organizations } = await getOrgContext();
-
-  // If no organizations, redirect to onboarding (for landlords/managers only)
-  if (organizations.length === 0) {
-    redirect("/onboarding");
+  // Renters go to renter dashboard
+  if (hasRole('renter')) {
+    redirect("/renter");
   }
 
-  if (role === 'landlord' || role === 'manager') {
-    redirect("/landlord");
-  } else {
-    // Default fallback - show dashboard with org info
-    return (
-      <main className="container" style={{ paddingTop: '4rem' }}>
-        <h1>Dashboard</h1>
-        <p>Welcome, {session.user.name || session.user.email}!</p>
-        {organization && (
-          <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-            Organization: {organization.name}
-          </p>
-        )}
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-          Role: {role || 'Member'}
-        </p>
-      </main>
-    );
-  }
+  // Fallback - should not reach here but show basic info
+  return (
+    <main className="container" style={{ paddingTop: '4rem' }}>
+      <h1>Dashboard</h1>
+      <p>Welcome, {session.user.name || session.user.email}!</p>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+        Roles: {roles.join(', ') || 'None'}
+      </p>
+    </main>
+  );
 }

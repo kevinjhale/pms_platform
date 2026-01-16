@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
-import { getRoleContext } from "@/lib/role-context";
-import RoleSwitcher from "./RoleSwitcher";
+import { getUserRoles } from "@/services/users";
 
 const navLinkStyle = {
     fontSize: '0.875rem',
@@ -11,9 +10,16 @@ const navLinkStyle = {
     transition: 'color 0.2s',
 };
 
+const ROLE_LABELS: Record<string, string> = {
+    renter: 'Renter',
+    landlord: 'Landlord',
+    manager: 'Manager',
+    maintenance: 'Maintenance',
+};
+
 export default async function Navbar() {
     const session = await auth();
-    const roleContext = session ? await getRoleContext() : null;
+    const userRoles = session?.user?.id ? await getUserRoles(session.user.id) : [];
 
     return (
         <nav style={{
@@ -35,17 +41,25 @@ export default async function Navbar() {
                             <Link href="/dashboard" style={navLinkStyle}>
                                 Dashboard
                             </Link>
-                            {roleContext && roleContext.activeRole && (
-                                <RoleSwitcher
-                                    activeRole={roleContext.activeRole}
-                                    availableRoles={roleContext.availableRoles}
-                                />
-                            )}
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>{session.user?.name}</div>
-                                {roleContext && roleContext.availableRoles.length < 2 && (
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--secondary)', textTransform: 'capitalize' }}>
-                                        {roleContext.activeRole}
+                                {userRoles.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.125rem' }}>
+                                        {userRoles.map((role) => (
+                                            <span
+                                                key={role}
+                                                style={{
+                                                    fontSize: '0.625rem',
+                                                    padding: '0.125rem 0.375rem',
+                                                    borderRadius: '4px',
+                                                    backgroundColor: 'var(--surface)',
+                                                    color: 'var(--secondary)',
+                                                    textTransform: 'capitalize',
+                                                }}
+                                            >
+                                                {ROLE_LABELS[role] || role}
+                                            </span>
+                                        ))}
                                     </div>
                                 )}
                             </div>

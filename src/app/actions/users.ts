@@ -3,8 +3,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { updateUserRole, updateUserDefaultPage, setUserRoles, getUserRoles, type LandlordPage } from '@/services/users';
-import { setActiveRole } from '@/lib/role-context';
+import { updateUserDefaultPage, setUserRoles, type LandlordPage } from '@/services/users';
 import type { PlatformRole } from '@/db';
 
 const VALID_ROLES: PlatformRole[] = ['renter', 'landlord', 'manager', 'maintenance'];
@@ -49,49 +48,11 @@ export async function selectRolesAction(formData: FormData) {
     throw new Error('Please select at least one role');
   }
 
-  // Set roles in junction table and first role as active
+  // Set roles in junction table
   await setUserRoles(session.user.id, validRoles);
 
   revalidatePath('/dashboard');
   redirect('/dashboard');
-}
-
-/**
- * Switch active role for users with multiple roles
- */
-export async function switchRoleAction(role: PlatformRole): Promise<{ success: boolean; error?: string; redirectTo?: string }> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
-  if (!VALID_ROLES.includes(role)) {
-    return { success: false, error: 'Invalid role' };
-  }
-
-  // Verify user has this role
-  const userRoles = await getUserRoles(session.user.id);
-  const hasRole = userRoles.includes(role) || session.user.role === role;
-
-  if (!hasRole) {
-    return { success: false, error: 'You do not have this role' };
-  }
-
-  // Set the active role (updates cookie and database)
-  const success = await setActiveRole(role);
-  if (!success) {
-    return { success: false, error: 'Failed to switch role' };
-  }
-
-  // Determine redirect based on new role
-  let redirectTo = '/dashboard';
-  if (role === 'renter') redirectTo = '/renter';
-  else if (role === 'landlord' || role === 'manager') redirectTo = '/landlord';
-  else if (role === 'maintenance') redirectTo = '/maintenance';
-
-  revalidatePath('/');
-
-  return { success: true, redirectTo };
 }
 
 export async function updateDefaultPageAction(page: string): Promise<{ success: boolean; error?: string }> {
