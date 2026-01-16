@@ -9,7 +9,7 @@ interface NavItem {
   label: string;
   href?: string;
   icon: string;
-  children?: { label: string; href: string; isQuickAction?: boolean }[];
+  children?: { label: string; href: string }[];
   requiredRoles?: OrgRole[]; // If set, only these roles can see this item
 }
 
@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
     icon: '\u2616', // Building
     children: [
       { label: 'View All Properties', href: '/landlord/properties' },
-      { label: 'Add Property', href: '/landlord/properties/new', isQuickAction: true },
+      { label: 'Add Property', href: '/landlord/properties/new' },
     ],
   },
   {
@@ -38,7 +38,7 @@ const navItems: NavItem[] = [
     icon: '\u2606', // Star
     children: [
       { label: 'View Listings', href: '/landlord/listings' },
-      { label: 'Create Listing', href: '/landlord/listings/new', isQuickAction: true },
+      { label: 'Create Listing', href: '/landlord/listings/new' },
     ],
   },
   {
@@ -51,7 +51,7 @@ const navItems: NavItem[] = [
     icon: '\u270D', // Writing hand
     children: [
       { label: 'View Leases', href: '/landlord/leases' },
-      { label: 'Create Lease', href: '/landlord/leases/new', isQuickAction: true },
+      { label: 'Create Lease', href: '/landlord/leases/new' },
     ],
   },
   {
@@ -59,7 +59,7 @@ const navItems: NavItem[] = [
     icon: '\u2692', // Hammer and wrench
     children: [
       { label: 'View Requests', href: '/landlord/maintenance' },
-      { label: 'Create Ticket', href: '/landlord/maintenance/new', isQuickAction: true },
+      { label: 'Create Ticket', href: '/landlord/maintenance/new' },
     ],
   },
   {
@@ -339,20 +339,6 @@ export default function LandlordSidebar({ pathname, userRole }: LandlordSidebarP
                             <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {child.label}
                             </span>
-                            {child.isQuickAction && (
-                              <span
-                                style={{
-                                  fontSize: '0.625rem',
-                                  padding: '0.125rem 0.375rem',
-                                  backgroundColor: 'var(--accent)',
-                                  color: 'var(--accent-foreground)',
-                                  borderRadius: '4px',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                +
-                              </span>
-                            )}
                           </Link>
                         </li>
                       ))}
