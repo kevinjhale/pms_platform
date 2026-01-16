@@ -1,5 +1,5 @@
 import { eq, and, desc, count, sql, or, inArray } from 'drizzle-orm';
-import { getDb, properties, units, propertyManagers, unitPhotos, pmClientRelationships, type Property, type Unit, type NewProperty, type NewUnit } from '@/db';
+import { getDb, properties, units, propertyManagers, unitPhotos, pmClientRelationships, users, type Property, type Unit, type NewProperty, type NewUnit } from '@/db';
 import { generateId, now } from '@/lib/utils';
 
 // Properties
@@ -478,6 +478,23 @@ export async function getPropertyManagers(propertyId: string) {
     .select()
     .from(propertyManagers)
     .where(eq(propertyManagers.propertyId, propertyId));
+}
+
+export async function getPropertyManagersWithUsers(propertyId: string) {
+  const db = getDb();
+  return db
+    .select({
+      assignment: propertyManagers,
+      user: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(propertyManagers)
+    .innerJoin(users, eq(propertyManagers.userId, users.id))
+    .where(eq(propertyManagers.propertyId, propertyId))
+    .orderBy(desc(propertyManagers.createdAt));
 }
 
 // Unit Photos

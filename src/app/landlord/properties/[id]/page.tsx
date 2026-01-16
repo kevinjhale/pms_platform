@@ -1,13 +1,15 @@
 import { auth } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
 import { getOrgContext } from '@/lib/org-context';
-import { getPropertyById, getUnitsByProperty } from '@/services/properties';
+import { getPropertyById, getUnitsByProperty, getPropertyManagersWithUsers } from '@/services/properties';
+import { getOrganizationMembersWithUsers } from '@/services/organizations';
 import { getTemplatesByOrganization } from '@/services/unitTemplates';
 import { createUnitAction, deletePropertyAction } from '@/app/actions/properties';
 import { formatCurrency, centsToDollars } from '@/lib/utils';
 import Link from 'next/link';
 import { DeletePropertyButton } from '@/components/DeletePropertyButton';
 import { AddUnitForm } from '@/components/AddUnitForm';
+import { PropertyManagersSection } from './PropertyManagersSection';
 
 const STATUS_COLORS = {
   available: { bg: '#dcfce7', text: '#166534' },
@@ -26,7 +28,7 @@ export default async function PropertyDetailPage({
     redirect('/login');
   }
 
-  const { organization } = await getOrgContext();
+  const { organization, role } = await getOrgContext();
   if (!organization) {
     redirect('/onboarding');
   }
@@ -38,10 +40,14 @@ export default async function PropertyDetailPage({
     notFound();
   }
 
-  const [units, templates] = await Promise.all([
+  const [units, templates, propertyManagers, orgMembers] = await Promise.all([
     getUnitsByProperty(id),
     getTemplatesByOrganization(organization.id),
+    getPropertyManagersWithUsers(id),
+    getOrganizationMembersWithUsers(organization.id),
   ]);
+
+  const canAssignPM = role === 'owner' || role === 'admin';
 
   const createUnitWithPropertyId = createUnitAction.bind(null, id);
   const deletePropertyWithId = deletePropertyAction.bind(null, id);
@@ -111,6 +117,14 @@ export default async function PropertyDetailPage({
           <p style={{ color: 'var(--text-secondary)' }}>{property.description}</p>
         </div>
       )}
+
+      {/* Property Managers Section */}
+      <PropertyManagersSection
+        propertyId={id}
+        managers={propertyManagers}
+        orgMembers={orgMembers}
+        canAssign={canAssignPM}
+      />
 
       {/* Units Section */}
       <div style={{

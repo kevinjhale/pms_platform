@@ -6,6 +6,12 @@
 
 Property Management System (PMS) - a multi-tenant platform for landlords, property managers, renters, and maintenance workers built with Next.js 16, Drizzle ORM, and SQLite.
 
+## Active Work
+
+**Tonight's Focus**: PM Feature Implementation - see `TODO_TONIGHT.md` for task list spanning multiple sessions.
+
+---
+
 ## Current State
 
 The platform now has:

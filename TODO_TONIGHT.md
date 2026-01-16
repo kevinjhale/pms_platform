@@ -1,0 +1,81 @@
+# Tonight's Work - PM Feature Implementation
+
+## Session Goal
+Implement the PM (Property Manager) feature set, starting with the blocking issue.
+
+---
+
+## Priority Order
+
+### 1. Issue #56 - Landlord UI to propose PM assignments (BLOCKER) - DONE
+- [x] Add "Property Managers" section to property detail page (`/landlord/properties/[id]/page.tsx`)
+- [x] Create assignment proposal form/modal component
+- [x] Add server action to call `assignPropertyManager()` from services
+- [x] Show current assignments with status (proposed/accepted/rejected)
+- [x] Allow setting split percentage (0-100)
+
+**Why first:** Without this, no assignments can be created in the database, blocking all other PM features.
+
+---
+
+### 2. Issue #51 - Verify PM assignment acceptance flow works
+- [ ] Test the existing `/landlord/assignments` page
+- [ ] Verify accept/reject actions work correctly
+- [ ] Add PM-side view of pending assignments (currently only landlord view exists)
+- [ ] Update PM dashboard or add assignments link
+
+---
+
+### 3. Issue #57 - PM-specific notifications
+- [ ] Add notification when assignment is proposed to PM
+- [ ] Add notification when assignment is accepted/rejected (to landlord)
+- [ ] Add maintenance notifications for assigned properties
+- [ ] Add rent payment notifications for assigned properties
+
+---
+
+### 4. Issue #53 - PM revenue tracking
+- [ ] Create revenue calculation service using `splitPercentage`
+- [ ] Query payments for assigned properties
+- [ ] Calculate PM's share based on accepted assignments
+- [ ] Add revenue summary functions
+
+---
+
+### 5. Issue #58 - PM revenue dashboard
+- [ ] Create `/pm/revenue` or `/manager/revenue` page
+- [ ] Show total PM revenue (sum of splits)
+- [ ] Monthly revenue trend chart
+- [ ] Revenue by property breakdown
+- [ ] CSV export functionality
+
+---
+
+### 6. Issue #50 - Full PM Dashboard
+- [ ] Replace stub at `/app/manager/page.tsx`
+- [ ] Show assigned properties count
+- [ ] Show pending assignments
+- [ ] Show revenue summary
+- [ ] Show maintenance requests for assigned properties
+- [ ] Reuse dashboard card components from landlord dashboard
+
+---
+
+## Notes
+
+- PM users currently redirect to `/landlord` - need to decide if they should have separate routes or use landlord routes with filtered data
+- The `propertyManagers` table schema already exists with `splitPercentage` field
+- Service functions exist in `src/services/properties.ts` (lines 419-481)
+- Assignment acceptance UI exists at `/landlord/assignments/`
+
+---
+
+## Progress Log
+
+### Session 1 (2026-01-15)
+- [x] Completed Issue #56 - Landlord UI to propose PM assignments
+  - Created `PropertyManagersSection.tsx` - displays current PMs with status badges
+  - Created `AssignManagerModal.tsx` - modal with user dropdown and split % input
+  - Created `src/app/actions/pmAssignments.ts` - server action for assignments
+  - Added `getPropertyManagersWithUsers()` to properties service
+  - Updated property detail page to show PM section
