@@ -1,6 +1,6 @@
 # PMS Platform - Session Notes
 
-**Last Updated**: 2026-01-15
+**Last Updated**: 2026-01-16
 
 ## Project Overview
 
@@ -29,7 +29,51 @@ Property Management System (PMS) - a multi-tenant platform for landlords, proper
 
 ---
 
-## What Was Done This Session (2026-01-15)
+## What Was Done This Session (2026-01-16)
+
+### Document Storage System (Provider-Agnostic)
+
+Implemented full document storage abstraction supporting multiple cloud providers:
+
+- **Storage Abstraction** (`src/lib/storage/`)
+  - `StorageAdapter` interface with upload, delete, getPresignedUrl, exists
+  - `LocalAdapter` - local filesystem for dev/fallback
+  - `S3Adapter` - works with AWS S3, Cloudflare R2, DigitalOcean Spaces
+
+- **Documents Schema** (`src/db/schema/documents.ts`)
+  - Tracks all uploads with metadata (entity type/id, mime type, storage provider/key)
+  - Document types: maintenance_photo, lease_agreement, id_document, pay_stub, etc.
+
+- **Services**
+  - `src/services/storage.ts` - per-org adapter resolution
+  - `src/services/documents.ts` - document CRUD operations
+
+- **API Routes**
+  - Updated `/api/upload` - uses storage abstraction, backward compatible
+  - Created `/api/documents/[id]/url` - presigned URL generation
+  - Created `/api/documents/[id]` - GET/DELETE endpoints
+
+- **Settings UI** - Storage provider config in Settings > Integrations
+  - Provider dropdown (Local, S3, R2, DO Spaces)
+  - Bucket, region, endpoint, credentials fields
+
+- **Migration Script** - `scripts/migrate-maintenance-photos.ts`
+
+**Commits**: `ee82641`
+
+### Context Preservation Hooks
+
+Researched and implemented DIY context preservation for auto-compaction:
+
+- Researched: Beads, Gas Town, context-by-md, c0ntextKeeper, Continuous-Claude-v3
+- Created `.claude/hooks/` with PreCompact, SessionStart, Stop hooks
+- Added research notes to `research/context_preservation.md`
+
+**Commits**: `7457084`
+
+---
+
+## Previous Session (2026-01-15)
 
 ### Multi-Role System (Issue #61 - Closed)
 
@@ -61,6 +105,8 @@ Property Management System (PMS) - a multi-tenant platform for landlords, proper
 
 | Feature | Date | Notes |
 |---------|------|-------|
+| Document Storage | 01-16 | S3/R2/DO Spaces support, presigned URLs, per-org config |
+| Context Hooks | 01-16 | PreCompact, SessionStart, Stop hooks for context preservation |
 | CSV Bulk Import | 01-15 | Multi-step wizard, papaparse, PM client support |
 | Sidebar Simplification | 01-15 | Direct links, removed submenus |
 | PM Client Relationships | 01-13 | `pm_client_relationships` table, client selector |
@@ -77,11 +123,12 @@ Property Management System (PMS) - a multi-tenant platform for landlords, proper
 
 ## Research Documents
 
-Four research docs in `research/` directory covering planned features:
+Five research docs in `research/` directory:
 - **payment_processing.md** - Hybrid payment approach (Stripe + manual recording)
 - **notices.md** - Automated late/eviction notices via Lob API
 - **lease_management.md** - In-app lease generation with e-signature
 - **preventative_maintenance.md** - Scheduled maintenance with calendar
+- **context_preservation.md** - Claude Code context preservation across compaction
 
 ---
 
@@ -148,16 +195,25 @@ STRIPE_PUBLISHABLE_KEY=""
 SMTP_HOST="smtp.gmail.com"
 SMTP_USER=""
 SMTP_PASS=""
+
+# Storage (optional - defaults to local, can configure via UI)
+STORAGE_PROVIDER="local"        # local | s3 | r2 | do_spaces
+STORAGE_BUCKET=""
+STORAGE_REGION="auto"
+STORAGE_ENDPOINT=""             # Required for R2/DO Spaces
+STORAGE_ACCESS_KEY_ID=""
+STORAGE_SECRET_ACCESS_KEY=""
 ```
 
 ---
 
 ## What Needs To Be Done Next
 
-1. **Document storage** - S3/R2 for lease PDFs and uploads
+1. **Run migration script** - `npx tsx scripts/migrate-maintenance-photos.ts` to migrate existing photos to documents table
 2. **Lease renewal workflow** - Auto-generate offers, e-signature
 3. **Push notifications** - Browser notifications for urgent items
 4. **Stripe Connect** - Payment splitting between PM/landlord
+5. **Pet fee tracking** - Add pet fees to lease/payment system
 
 ---
 
