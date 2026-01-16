@@ -40,6 +40,9 @@ The platform now has:
 - Properties page table view with units as rows
 - **NEW: CSV bulk import for properties and units**
 - **NEW: Simplified sidebar navigation (direct links, no submenus)**
+- **NEW: Multi-role support (users can have multiple platform roles)**
+- **NEW: Team management (edit member roles, remove members)**
+- **NEW: Role-based access without role switching (all content visible based on all roles)**
 - Comprehensive testing framework (25 tests)
 - Full documentation for setup and configuration
 - Production deployment on DigitalOcean (halestormsw.com)
@@ -48,7 +51,65 @@ The platform now has:
 
 ## What Was Done This Session (2026-01-15)
 
-### CSV Bulk Import for Properties (Issue #60 - Closed)
+### Multi-Role System & Team Management
+
+Major architectural changes to role handling and team management.
+
+#### Issue #61 - Multiple Roles Per User (Closed)
+
+Implemented support for users having multiple platform roles simultaneously.
+
+**Key Changes:**
+- Users can now have multiple roles (e.g., landlord + manager + renter)
+- Removed the "role switching" concept entirely - users see ALL content for ALL their roles
+- Route protection changed from checking "active role" to checking "has role"
+- Dashboard routing uses priority: landlord/manager > maintenance > renter
+
+**Commits:** `bceacc9`, `9548484`
+
+#### Team Management Features
+
+Added ability to edit member roles and remove members from organizations.
+
+**New Files Created:**
+
+| File | Purpose |
+|------|---------|
+| `src/app/landlord/settings/EditMemberButton.tsx` | Dropdown to change member's org role (admin/manager/staff) |
+| `src/app/landlord/settings/RemoveMemberButton.tsx` | Button with confirmation to remove members |
+
+**Modified Files:**
+
+| File | Changes |
+|------|---------|
+| `src/app/actions/organizations.ts` | Added `updateMemberRoleAction()`, `removeMemberAction()` |
+| `src/app/landlord/settings/page.tsx` | Added "My Platform Roles" section with organizations, edit/remove buttons on member rows |
+| `src/components/Navbar.tsx` | Removed RoleSwitcher, now shows role badges |
+| `src/proxy.ts` | Changed to `hasRole()` checking instead of active role |
+| `src/app/dashboard/page.tsx` | Routes based on all roles with priority |
+
+**Deleted Files:**
+
+| File | Reason |
+|------|--------|
+| `src/components/RoleSwitcher.tsx` | Role switching concept removed |
+| `src/lib/role-context.ts` | Role switching context removed |
+
+**Permission Matrix for Team Management:**
+
+| Action | Owner | Admin | Manager | Staff |
+|--------|-------|-------|---------|-------|
+| Change to Admin | Yes | No | No | No |
+| Change to Manager/Staff | Yes | Yes | No | No |
+| Remove member | Yes | Yes* | No | No |
+
+*Admins cannot remove owners or other admins
+
+**Commit:** `2b0ff78`
+
+---
+
+### Previous: CSV Bulk Import for Properties (Issue #60 - Closed)
 
 Added multi-step wizard for importing properties and units from CSV files.
 
@@ -202,11 +263,11 @@ Changed properties display from cards to a table showing units as rows.
 
 ---
 
-### GitHub Issues Created
+### GitHub Issues
 
-- **#59**: Dashboard Phase 3 - per-card filters and date range selectors
-- **#60**: CSV bulk import for properties
-- **#61**: Allow users to have multiple roles
+- **#59**: Dashboard Phase 3 - per-card filters and date range selectors (Open)
+- **#60**: CSV bulk import for properties (Closed)
+- **#61**: Allow users to have multiple roles (Closed)
 
 ---
 

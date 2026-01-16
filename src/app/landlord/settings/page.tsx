@@ -162,91 +162,80 @@ export default async function SettingsPage() {
             My Platform Roles
           </h2>
           <div className="card" style={{ padding: "1.5rem" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
-              {platformRoles.map((role) => (
-                <div
-                  key={role}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "8px",
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <span>
-                    {role === "landlord" && "🏢"}
-                    {role === "manager" && "📋"}
-                    {role === "renter" && "🏠"}
-                    {role === "maintenance" && "🔧"}
-                  </span>
-                  <span style={{ fontWeight: "500" }}>
-                    {PLATFORM_ROLE_LABELS[role] || role}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Organizations for this user */}
-            {organizations.length > 0 && (
-              <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
-                <h4 style={{ fontSize: "0.875rem", fontWeight: "600", marginBottom: "0.75rem", color: "var(--secondary)" }}>
-                  My Organizations
-                </h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {organizations.map((membership) => {
-                    const isCurrentOrg = membership.organization.id === organization.id;
-                    const orgRoleStyle = ROLE_STYLES[membership.role] || ROLE_STYLES.staff;
-                    return (
-                      <div
-                        key={membership.organization.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "0.5rem 0.75rem",
-                          backgroundColor: isCurrentOrg ? "var(--surface)" : "transparent",
-                          borderRadius: "6px",
-                          border: isCurrentOrg ? "1px solid var(--primary)" : "1px solid transparent",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <span style={{ fontWeight: "500", fontSize: "0.875rem" }}>
-                            {membership.organization.name}
-                          </span>
-                          {isCurrentOrg && (
-                            <span style={{
-                              fontSize: "0.65rem",
-                              padding: "0.125rem 0.375rem",
-                              borderRadius: "4px",
-                              backgroundColor: "#e0f2fe",
-                              color: "#0369a1",
-                            }}>
-                              current
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          style={{
-                            padding: "0.125rem 0.5rem",
-                            borderRadius: "4px",
-                            fontSize: "0.7rem",
-                            fontWeight: "600",
-                            textTransform: "uppercase",
-                            backgroundColor: orgRoleStyle.bg,
-                            color: orgRoleStyle.color,
-                          }}
-                        >
-                          {membership.role}
-                        </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {platformRoles.map((platformRole) => {
+                // For landlord/manager roles, show associated organizations
+                const isOrgRole = platformRole === "landlord" || platformRole === "manager";
+                return (
+                  <div
+                    key={platformRole}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      padding: "0.75rem 1rem",
+                      borderRadius: "8px",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: "160px" }}>
+                      <span>
+                        {platformRole === "landlord" && "🏢"}
+                        {platformRole === "manager" && "📋"}
+                        {platformRole === "renter" && "🏠"}
+                        {platformRole === "maintenance" && "🔧"}
+                      </span>
+                      <span style={{ fontWeight: "500" }}>
+                        {PLATFORM_ROLE_LABELS[platformRole] || platformRole}
+                      </span>
+                    </div>
+                    {isOrgRole && organizations.length > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <span style={{ color: "var(--secondary)", fontSize: "0.875rem" }}>@</span>
+                        {organizations.map((membership, idx) => {
+                          const isCurrentOrg = membership.organization.id === organization.id;
+                          const orgRoleStyle = ROLE_STYLES[membership.role] || ROLE_STYLES.staff;
+                          return (
+                            <div
+                              key={membership.organization.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.375rem",
+                              }}
+                            >
+                              {idx > 0 && <span style={{ color: "var(--secondary)", fontSize: "0.75rem" }}>,</span>}
+                              <span style={{
+                                fontSize: "0.875rem",
+                                color: isCurrentOrg ? "var(--primary)" : "inherit",
+                                fontWeight: isCurrentOrg ? "500" : "400",
+                              }}>
+                                {membership.organization.name}
+                              </span>
+                              <span
+                                style={{
+                                  padding: "0.125rem 0.375rem",
+                                  borderRadius: "4px",
+                                  fontSize: "0.625rem",
+                                  fontWeight: "600",
+                                  textTransform: "uppercase",
+                                  backgroundColor: orgRoleStyle.bg,
+                                  color: orgRoleStyle.color,
+                                }}
+                              >
+                                {membership.role}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {platformRoles.length > 1 && (
               <p style={{ fontSize: "0.875rem", color: "var(--secondary)", marginTop: "1rem" }}>
