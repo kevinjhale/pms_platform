@@ -30,3 +30,8 @@ tsconfig.tsbuildinfo
 # SQLite temp files
 *.db-shm
 *.db-wal
+
+# Context preservation hook runtime files
+.claude/CONTEXT_SNAPSHOT.md
+.claude/LAST_SESSION.md
+.claude/session-log.jsonl

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://code.claude.com/schema/settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "command": "node .claude/hooks/session-start.js"
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "command": "node .claude/hooks/pre-compact.js"
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "node .claude/hooks/session-stop.js"
+      }
+    ]
+  }
+}
