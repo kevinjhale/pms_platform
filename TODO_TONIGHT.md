@@ -18,11 +18,11 @@ Implement the PM (Property Manager) feature set, starting with the blocking issu
 
 ---
 
-### 2. Issue #51 - Verify PM assignment acceptance flow works
-- [ ] Test the existing `/landlord/assignments` page
-- [ ] Verify accept/reject actions work correctly
-- [ ] Add PM-side view of pending assignments (currently only landlord view exists)
-- [ ] Update PM dashboard or add assignments link
+### 2. Issue #51 - Verify PM assignment acceptance flow works - DONE
+- [x] Test the existing `/landlord/assignments` page (already working)
+- [x] Verify accept/reject actions work correctly (already working)
+- [x] PM-side view exists at `/landlord/assignments` - PMs see their pending assignments
+- [x] Added pending assignment count badge to sidebar Assignments link
 
 ---
 
@@ -79,3 +79,8 @@ Implement the PM (Property Manager) feature set, starting with the blocking issu
   - Created `src/app/actions/pmAssignments.ts` - server action for assignments
   - Added `getPropertyManagersWithUsers()` to properties service
   - Updated property detail page to show PM section
+- [x] Completed Issue #51 - Verify PM assignment acceptance flow
+  - Verified existing `/landlord/assignments` page works correctly
+  - Verified accept/reject actions work correctly
+  - Added `getPendingAssignmentCount()` to properties service
+  - Added red badge to sidebar Assignments link showing pending count

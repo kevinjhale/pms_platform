@@ -434,6 +434,20 @@ export async function getPendingAssignmentsForManager(userId: string) {
     .orderBy(desc(propertyManagers.createdAt));
 }
 
+export async function getPendingAssignmentCount(userId: string): Promise<number> {
+  const db = getDb();
+  const result = await db
+    .select({ count: count() })
+    .from(propertyManagers)
+    .where(
+      and(
+        eq(propertyManagers.userId, userId),
+        eq(propertyManagers.status, 'proposed')
+      )
+    );
+  return result[0]?.count ?? 0;
+}
+
 export async function assignPropertyManager(data: {
   propertyId: string;
   userId: string;

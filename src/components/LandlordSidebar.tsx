@@ -80,11 +80,12 @@ const navItems: NavItem[] = [
 interface LandlordSidebarProps {
   pathname: string;
   userRole: OrgRole;
+  pendingAssignmentCount?: number;
 }
 
 const STORAGE_KEY = 'landlord-sidebar-collapsed';
 
-export default function LandlordSidebar({ pathname, userRole }: LandlordSidebarProps) {
+export default function LandlordSidebar({ pathname, userRole, pendingAssignmentCount = 0 }: LandlordSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
@@ -368,9 +369,28 @@ export default function LandlordSidebar({ pathname, userRole }: LandlordSidebarP
                     {item.icon}
                   </span>
                   {!isCollapsed && (
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.label}
-                    </span>
+                    <>
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.label}
+                      </span>
+                      {item.label === 'Assignments' && pendingAssignmentCount > 0 && (
+                        <span
+                          style={{
+                            marginLeft: 'auto',
+                            padding: '0.125rem 0.5rem',
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            borderRadius: '999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            minWidth: '1.25rem',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {pendingAssignmentCount}
+                        </span>
+                      )}
+                    </>
                   )}
                 </Link>
               )}

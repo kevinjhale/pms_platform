@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { getOrgContext } from '@/lib/org-context';
+import { getPendingAssignmentCount } from '@/services/properties';
 import LandlordSidebarWrapper from '@/components/LandlordSidebarWrapper';
 import { MobileMenuProvider } from '@/components/MobileMenuProvider';
 
@@ -21,6 +22,9 @@ export default async function LandlordLayout({
     redirect('/onboarding');
   }
 
+  // Fetch pending assignment count for the sidebar badge
+  const pendingAssignmentCount = await getPendingAssignmentCount(session.user.id);
+
   return (
     <MobileMenuProvider>
       <div
@@ -29,7 +33,10 @@ export default async function LandlordLayout({
           minHeight: '100vh',
         }}
       >
-        <LandlordSidebarWrapper userRole={(role as OrgRole) || 'staff'} />
+        <LandlordSidebarWrapper
+          userRole={(role as OrgRole) || 'staff'}
+          pendingAssignmentCount={pendingAssignmentCount}
+        />
         <main
           className="main-content-mobile"
           style={{
