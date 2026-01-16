@@ -98,12 +98,20 @@ export default async function PropertiesPage({ searchParams }: PageProps) {
           </p>
         </div>
         {canCreateProperty && (
-          <Link
-            href={clientId ? `/landlord/properties/new?client=${clientId}` : '/landlord/properties/new'}
-            className="btn btn-primary"
-          >
-            + Add Property
-          </Link>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Link
+              href={clientId ? `/landlord/properties/import?client=${clientId}` : '/landlord/properties/import'}
+              className="btn"
+            >
+              Import CSV
+            </Link>
+            <Link
+              href={clientId ? `/landlord/properties/new?client=${clientId}` : '/landlord/properties/new'}
+              className="btn btn-primary"
+            >
+              + Add Property
+            </Link>
+          </div>
         )}
       </div>
 
