@@ -1,98 +1,40 @@
 # Agent Configurations
 
-Custom agents for development workflow. Each agent has a specific purpose, model assignment, and trigger conditions.
+Custom agent prompt files for the development workflow. Each file contains instructions, model assignment, and output format for a specific stage.
+
+**How agents are invoked:** The main Claude instance reads an agent file, then uses the Task tool with `subagent_type="general-purpose"`, passing the Instructions section as the prompt and setting the `model` parameter to match the `## Model` field. See CLAUDE.md for the full workflow.
 
 ## Quick Reference
 
 | Agent | Model | Purpose | Trigger |
 |-------|-------|---------|---------|
-| [architect](./architect.md) | Opus | System design & planning | Before non-trivial features |
-| [code-reviewer](./code-reviewer.md) | Sonnet | Quality & anti-pattern check | After implementation |
-| [test-writer](./test-writer.md) | Sonnet | Test generation | After review passes |
-| [a11y-auditor](./a11y-auditor.md) | Haiku | WCAG 2.1 AA compliance | After UI changes |
-| [sql-writer](./sql-writer.md) | Sonnet | Database & migrations | Data layer work |
-| [refactor-planner](./refactor-planner.md) | Opus | Tech debt analysis | On request / periodic |
-| [api-designer](./api-designer.md) | Sonnet | REST API design | New endpoints |
-| [commit-preparer](./commit-preparer.md) | Haiku | Atomic commit prep | Before committing |
+| [architect](./architect.md) | opus (claude-opus-4-6) | System design & planning | Before non-trivial features |
+| [code-reviewer](./code-reviewer.md) | sonnet (claude-sonnet-4-5) | Quality & anti-pattern check | After implementation |
+| [test-writer](./test-writer.md) | sonnet (claude-sonnet-4-5) | Test generation | After review passes |
+| [a11y-auditor](./a11y-auditor.md) | haiku (claude-haiku-4-5) | WCAG 2.1 AA compliance | After UI changes |
+| [sql-writer](./sql-writer.md) | sonnet (claude-sonnet-4-5) | Database & migrations | Data layer work |
+| [refactor-planner](./refactor-planner.md) | opus (claude-opus-4-6) | Tech debt analysis | On request / periodic |
+| [api-designer](./api-designer.md) | sonnet (claude-sonnet-4-5) | REST API design | New endpoints |
+| [commit-preparer](./commit-preparer.md) | haiku (claude-haiku-4-5) | Atomic commit prep | Before committing |
 
 ## Model Strategy
 
-```
-Opus ($$$$)     → High-stakes decisions: architect, refactor-planner
-Sonnet ($$$)    → Balanced quality/cost: code-reviewer, test-writer, sql-writer, api-designer
-Haiku ($$)      → Checklist/validation: a11y-auditor, commit-preparer
-```
-
-## Workflow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     FEATURE DEVELOPMENT                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. PLAN                                                     │
-│     └── [architect] ──────────────────────────── Opus       │
-│                                                              │
-│  2. IMPLEMENT                                                │
-│     └── [sql-writer] (if DB work) ────────────── Sonnet     │
-│     └── [api-designer] (if API work) ─────────── Sonnet     │
-│                                                              │
-│  3. REVIEW                                                   │
-│     └── [code-reviewer] ──────────────────────── Sonnet     │
-│     └── [a11y-auditor] (if UI work) ──────────── Haiku      │
-│                                                              │
-│  4. TEST                                                     │
-│     └── [test-writer] ────────────────────────── Sonnet     │
-│                                                              │
-│  5. COMMIT                                                   │
-│     └── [commit-preparer] ────────────────────── Haiku      │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                     MAINTENANCE                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  [refactor-planner] ──────────────────────────── Opus       │
-│     └── Periodic health checks                               │
-│     └── After code-reviewer finds patterns                   │
-│     └── Before major changes                                 │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+- **opus** (claude-opus-4-6) - High-stakes decisions: architect, refactor-planner
+- **sonnet** (claude-sonnet-4-5) - Balanced quality/cost: code-reviewer, test-writer, sql-writer, api-designer
+- **haiku** (claude-haiku-4-5) - Checklist/validation: a11y-auditor, commit-preparer
 
 ## Dynamic Model Upgrades
 
 Some agents upgrade to a higher model for complex scenarios:
 
-**a11y-auditor:** Haiku → Sonnet
-- Complex interactive components
-- Custom widgets with ARIA
-- Dynamic content accessibility
+**a11y-auditor:** haiku -> sonnet
+- Complex interactive components, custom widgets with ARIA, dynamic content
 
-**commit-preparer:** Haiku → Sonnet
-- Changes span 5+ files
-- Breaking changes involved
-- Critical path modifications
+**commit-preparer:** haiku -> sonnet
+- Changes span 5+ files, breaking changes, critical path modifications
 
-**code-reviewer:** Sonnet → Opus
-- Security-critical code
-- Authentication/authorization
-- Payment/financial logic
-- Cryptographic implementations
-
-## Usage Examples
-
-```bash
-# Invoke specific agent
-claude "Run the architect agent for this feature"
-claude "Use code-reviewer on the changes I just made"
-claude "Run a11y-auditor on the new modal component"
-
-# Workflow commands
-claude "I'm done implementing, run the full review workflow"
-claude "Prepare commits for my changes"
-```
+**code-reviewer:** sonnet -> opus
+- Security-critical code, authentication/authorization, payment/financial logic
 
 ## Customization
 

@@ -60,7 +60,7 @@ You are a technical debt analyst focused on identifying improvement opportunitie
 
 ### Output Format
 
-```markdown
+~~~markdown
 ## Refactor Plan: [Area/Module]
 
 ### Executive Summary
@@ -122,7 +122,7 @@ You are a technical debt analyst focused on identifying improvement opportunitie
 
 ### Risks & Mitigation
 [What could go wrong and how to prevent it]
-```
+~~~
 
 ### TODO Comment Format
 

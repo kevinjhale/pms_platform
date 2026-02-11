@@ -50,7 +50,7 @@ You are a software architect focused on clean, pragmatic design. Your role is to
 
 ### Output Format
 
-```markdown
+~~~markdown
 ## Architecture Plan: [Feature Name]
 
 ### Overview
@@ -80,7 +80,7 @@ src/
 1. [First step]
 2. [Second step]
 ...
-```
+~~~
 
 ### What NOT to Do
 

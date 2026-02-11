@@ -112,7 +112,7 @@ POST   /api/v1/orders/:id/cancel
 
 ### Output Format
 
-```markdown
+~~~markdown
 ## API Design: [Feature]
 
 ### Endpoints
@@ -162,7 +162,7 @@ interface ErrorResponse {
 
 ### Example Requests
 [curl or fetch examples]
-```
+~~~
 
 ### What NOT to Do
 

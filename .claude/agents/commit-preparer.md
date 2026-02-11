@@ -18,6 +18,8 @@ Analyze changes and prepare atomic commits with conventional commit messages.
 
 You are a commit preparation assistant focused on atomic commits and clear conventional commit messages.
 
+**Note:** Claude Code's built-in commit flow automatically appends a `Co-Authored-By` trailer. This agent focuses on analyzing and grouping changes - the actual `git commit` command should use Claude Code's standard commit flow to ensure the trailer is included.
+
 ### Conventional Commit Format
 
 ```
@@ -66,7 +68,7 @@ You are a commit preparation assistant focused on atomic commits and clear conve
 
 ### Output Format
 
-```markdown
+~~~markdown
 ## Commit Analysis
 
 ### Changes Summary
@@ -103,7 +105,7 @@ git add path/file1.ts path/file2.ts
 - Unrelated changes mixed together
 - Missing test coverage
 - Potential breaking changes
-```
+~~~
 
 ### Message Writing Guidelines
 

@@ -216,66 +216,28 @@ Use **structured JSON logging** with:
 
 ### Session Start
 
-**First conversation of each session**: Review `SESSION_NOTES.md` to understand recent work, current state, and what needs to be done next. This provides essential context for continuity.
+**First conversation of each session**: Review `.claude/SESSION_STATE.md` and `.claude/LAST_SESSION.md` to understand recent work, current state, and what needs to be done next.
 
 ### Agent-Driven Workflow
 
-**ALWAYS use the custom agents in `.claude/agents/` - they exist to improve quality and consistency. Use them proactively at each stage of development, not just when explicitly asked:**
+Use the agent prompt files in `.claude/agents/` proactively at each development stage. Each file contains the full instructions and model assignment for that agent.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     FEATURE DEVELOPMENT                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. PLAN (non-trivial features)                              │
-│     └── architect agent ─────────────────────── Opus        │
-│                                                              │
-│  2. IMPLEMENT                                                │
-│     └── sql-writer (if DB/schema work) ──────── Sonnet      │
-│     └── api-designer (if API work) ──────────── Sonnet      │
-│                                                              │
-│  3. REVIEW                                                   │
-│     └── code-reviewer ───────────────────────── Sonnet      │
-│     └── a11y-auditor (if UI work) ───────────── Haiku       │
-│                                                              │
-│  4. TEST                                                     │
-│     └── test-writer (for complex logic) ─────── Sonnet      │
-│                                                              │
-│  5. COMMIT                                                   │
-│     └── commit-preparer ─────────────────────── Haiku       │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+**How to invoke:** Read the agent file from `.claude/agents/`, use the Task tool with `subagent_type="general-purpose"`, pass the agent's Instructions section as the prompt, and set `model` to the value in the agent's `## Model` field (opus, sonnet, or haiku).
 
-**When to invoke agents (use proactively - don't wait to be asked):**
-- **architect**: Before planning non-trivial features or major changes
-- **sql-writer**: When adding/modifying database schema or writing complex queries
-- **api-designer**: When creating new API endpoints
-- **code-reviewer**: After completing implementation, before commit - ALWAYS run this
-- **a11y-auditor**: After UI changes (components, pages, modals) - ALWAYS run for UI work
-- **test-writer**: After code-reviewer passes, for complex business logic
-- **commit-preparer**: Before creating commits (especially multi-file changes)
-- **refactor-planner**: Periodically or when code-reviewer finds recurring patterns
+**When to invoke (proactively - don't wait to be asked):**
 
-**Important**: These agents exist to catch issues early and maintain quality. Skipping them leads to bugs and inconsistencies. When in doubt, run the agent.
+| Stage | Agent | Model | When |
+|-------|-------|-------|------|
+| Plan | `architect` | opus | Non-trivial features, 3+ files, new domains |
+| Implement | `sql-writer` | sonnet | DB schema, complex queries, migrations |
+| Implement | `api-designer` | sonnet | New API endpoints |
+| Review | `code-reviewer` | sonnet | **Always** after implementation |
+| Review | `a11y-auditor` | haiku | **Always** after UI changes |
+| Test | `test-writer` | sonnet | Complex business logic |
+| Commit | `commit-preparer` | haiku | Multi-file changes |
+| Maintain | `refactor-planner` | opus | Recurring patterns, tech debt |
 
-### Planning
-
-**Context-dependent** approach:
-- Simple tasks: Just do it
-- Complex tasks: Use `architect` agent first, then plan thoroughly
-
-### Feature Development
-
-1. Understand requirements fully
-2. Run `architect` agent for non-trivial features
-3. Check existing patterns in codebase
-4. Use `sql-writer` / `api-designer` during implementation as needed
-5. Run `code-reviewer` after implementation
-6. Run `a11y-auditor` if UI was changed
-7. Run `test-writer` for complex logic
-8. Run `commit-preparer` before committing
-9. Atomic commits with clear messages
+Some agents upgrade models for complex scenarios - see individual agent files for details.
 
 ### Code Generation
 
